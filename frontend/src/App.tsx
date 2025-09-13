@@ -1,0 +1,100 @@
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { AuthProvider } from './contexts/AuthContext';
+import Layout from './components/Layout';
+import ProtectedRoute from './components/ProtectedRoute';
+import Home from './pages/Home';
+import Login from './pages/Login';
+import Register from './pages/Register';
+import Profile from './pages/Profile';
+import About from './pages/About';
+import Sponsors from './pages/Sponsors';
+import Resources from './pages/Resources';
+import Awards from './pages/Awards';
+import Robots from './pages/Robots';
+import Admin from './pages/Admin';
+import MassEmail from './pages/MassEmail';
+import Maintenance from './pages/Maintenance';
+import RosterManagement from './pages/RosterManagement';
+import Roster from './pages/Roster';
+import Unauthorized from './pages/Unauthorized';
+import { logHTTPSConfig } from './utils/httpsHelper';
+import './App.css';
+
+function App() {
+  document.title = "S.W.A.T. 1806";
+  
+  // Log HTTPS configuration in development
+  if (process.env.NODE_ENV === 'development') {
+    logHTTPSConfig();
+  }
+  return (
+    <AuthProvider>
+      <Router>
+        <Layout>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/sponsors" element={<Sponsors />} />
+            <Route path="/resources" element={<Resources />} />
+            <Route path="/awards" element={<Awards />} />
+            <Route path="/robots" element={<Robots />} />
+            <Route path="/unauthorized" element={<Unauthorized />} />
+            <Route
+              path="/profile"
+              element={
+                <ProtectedRoute>
+                  <Profile />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin"
+              element={
+                <ProtectedRoute>
+                  <Admin />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/mass-email"
+              element={
+                <ProtectedRoute>
+                  <MassEmail />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/maintenance"
+              element={
+                <ProtectedRoute>
+                  <Maintenance />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/roster-management"
+              element={
+                <ProtectedRoute>
+                  <RosterManagement />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/roster"
+              element={
+                <ProtectedRoute>
+                  <Roster />
+                </ProtectedRoute>
+              }
+            />
+          </Routes>
+        </Layout>
+      </Router>
+    </AuthProvider>
+  );
+}
+
+export default App;

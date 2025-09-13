@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+  <html lang="en" dir="ltr">
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <link rel="apple-touch-icon" sizes="180x180" href="pictures/apple-touch-icon.png">
+      <link rel="icon" type="image/png" sizes="32x32" href="pictures/favicon-32x32.png">
+      <link rel="icon" type="image/png" sizes="16x16" href="pictures/favicon-16x16.png">
+      <link rel="manifest" href="pictures/site.webmanifest">
+      <link rel="stylesheet" href="css/main_stylesheet.css">
+      <link rel="stylesheet" href="css/overrides.css">
+      <meta name="description" content="Official Site of FRC Team 1806: S.W.A.T.">
+      <meta name="keywords" content="robotics,first robotics,first robotics competition,frc,robot,robots,smithville,kansas city,missouri,smithville high school,smithville school district,smithville warriors,advancing technology,smithville warriors advancing technology,swat,s.w.a.t.,1806,frc 1806,7359,ftc team 7359,7507,ftc team 7507,sponsor,sponsorship opportunity,outreach,meta,gene haas foundation,oracle,educational robotics,smithville activities,after-school activity,hands on learning,SHOWTURTLE">
+      <title>S.W.A.T. 1806 | Manager Page</title>
+      <script src="src/jquery.min.js"></script>
+    </head>
+    <body>
+      <!-- Firebase App (the core Firebase SDK) is always required and must be listed first -->
+      <script src="https://www.gstatic.com/firebasejs/7.6.1/firebase-app.js"></script>
+
+      <!-- Add Firebase products that you want to use -->
+      <script src="https://www.gstatic.com/firebasejs/7.6.1/firebase-auth.js"></script>
+      <script src="https://www.gstatic.com/firebasejs/7.6.1/firebase-firestore.js"></script>
+      <script src="https://www.gstatic.com/firebasejs/7.6.1/firebase-database.js"></script>
+      <script src="https://www.gstatic.com/firebasejs/7.6.1/firebase-storage.js"></script>
+      <!-- Firebase config file for the console -->
+      <script src="src/firebase_config.js"></script>
+      <!-- Fixednav -->
+      <div class="fixedbar">
+        <span class="pancakes" style="font-size:30px;cursor:pointer;color:white;padding-left:15px;margin-top:2px;float:left;" onclick="openNav()">☰</span>
+        <a href="#" class="navbarthings"><img src="pictures/Logo.png" class="logo"></a>
+      </div>
+      <!-- Sidenav -->
+      <div id="mySidenav" class="sidenav">
+        <a href="javascript:void(0)" class="closebtn" onclick="closeNav()">&times;</a>
+        <a href="index.html">Home</a>
+        <a href="history-page.html">History & Robots</a>
+        <a href="awards-page.html">Awards</a>
+        <a href="sponsors.html">Sponsors</a>
+        <a href="demo.html">Request a Demo</a>
+        <a href="resources.html">Resources</a>
+        <a href="registration.html">Join Our Team</a>
+        <a href="about.html" style="overflow:hidden;white-space: nowrap;">About Us</a>
+        <!-- <a href="newsletters.html">Newsletters</a> -->
+      </div>
+
+      <br><br><br><br>
+      <h1>Welcome Admin!</h1>
+      <hr width="70%" size="7" noshade>
+      <br><br>
+      <h3>Student Report Page: <a href="report-page.html">Reports</a></h3>
+      <br><br>
+      <h3>Clocking System Audits: <a href="audit-page.html">Audits</a></h3>
+      <br><br>
+      <h3>Manage Students & Admins: <a href="admin-page.html">Manage</a></h3>
+      <br><br>
+      <!-- <div style="text-align:center">
+        <h3>Submit PDF File to Newsletters (Once you do this this can't be undone): </h3>
+        <label class="upload-group">
+          <div class="uploadfile"><h4>Upload PDF</h4></div>
+          <input type="file" class="upload-group" id="file">
+        </label>
+        <br>
+        <button type="button" class="uploadbutton" id="uploadButton" onclick="uploadFile()">Submit</button>
+      </div> -->
+      <br><br><br>
+      <footer>
+        <p>Smithville High School Robotics | S.W.A.T. (Smithville Warriors Advancing Technology)</p>
+      </footer>
+
+    </body>
+    <!-- Sidenav functionality -->
+    <script>
+      function openNav() {
+        document.getElementById("mySidenav").style.width = "250px";
+      }
+
+      function closeNav() {
+        document.getElementById("mySidenav").style.width = "0";
+      }
+    </script>
+
+    <!-- Checkes if user is indeed an admin -->
+    <script src="src/admin-comps_manage.js"></script>
+    <!-- Functionality for updating the newsletter on firebase and the associated page -->
+    <script async src="src/newsletter_handler.js"></script>
+    <!-- Checks if user is signed in -->
+    <script src="src/auth_check.js"></script>
+  </html>
