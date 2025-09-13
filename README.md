@@ -144,4 +144,4 @@ UPLOAD_PATH=./uploads
 
 ## License
 
-This project is proprietary to FIRST Robotics Competition Team 1806.
+This project is designed for FIRST Robotics Competition Team 1806. However if it is useful for you and your team, feel free to use it. It's mostly AI generated anyway.
