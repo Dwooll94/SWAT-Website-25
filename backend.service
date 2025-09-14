@@ -1,0 +1,13 @@
+    [Unit]
+    Description=SWAT Website Backend
+    After=network.target
+
+    [Service]
+    ExecStart=/usr/bin/npm start
+    WorkingDirectory=/opt/SWAT-Website-25/backend
+    Restart=always
+    User=ec2-user
+    Environment=NODE_ENV=production
+
+    [Install]
+    WantedBy=multi-user.target
