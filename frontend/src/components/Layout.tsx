@@ -97,7 +97,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                     Welcome, {user.first_name || user.email}
                   </span>
                   <Link to="/profile" className="hover:text-swat-green transition-colors">Profile</Link>
-                  {(user.maintenance_access || ['mentor', 'admin'].includes(user.role)) && (
+                  {(['mentor', 'admin'].includes(user.role)) && (
                     <Link to="/admin" className="hover:text-swat-green transition-colors">Admin</Link>
                   )}
                   <button
@@ -246,7 +246,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               </li>
             )}
             {/* Roster Management for Core Leadership, Mentors, and Admins */}
-            {user && (user.maintenance_access || user.role === 'admin' || user.role === 'mentor') && (
+            {user && (user.is_core_leadership || user.role === 'admin' || user.role === 'mentor') && (
               <li>
                 <Link 
                   to="/roster-management" 

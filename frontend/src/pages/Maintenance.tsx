@@ -1024,7 +1024,7 @@ const Maintenance: React.FC = () => {
       )}
 
       {/* Tab Navigation */}
-      <div className="border-b border-gray-200 mb-6">
+      <div className="border-b border-gray-200 mb-6 py-2 overflow-auto">
         <nav className="flex space-x-8">
           <button
             onClick={() => setActiveTab('slideshow')}

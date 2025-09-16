@@ -108,7 +108,7 @@ const Register: React.FC = () => {
   };
 
   const validateStep1 = () => {
-    if (!formData.email || !formData.password || !formData.confirmPassword) {
+    if (!formData.email || !formData.password || !formData.confirmPassword || !formData.graduation_year) {
       setError('Please fill in all required fields');
       return false;
     }
@@ -125,6 +125,12 @@ const Register: React.FC = () => {
     
     if (formData.password.length < 8) {
       setError('Password must be at least 8 characters long');
+      return false;
+    }
+
+    var gradYearInt = parseInt(formData.graduation_year);
+    if(!gradYearInt|| gradYearInt < new Date().getFullYear() || gradYearInt > new Date().getFullYear()+19){
+      setError('Please enter a reasonable graduation year');
       return false;
     }
     
@@ -306,7 +312,7 @@ const Register: React.FC = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700">
-                    Graduation Year
+                    Graduation Year *
                   </label>
                   <input
                     type="number"
@@ -382,7 +388,7 @@ const Register: React.FC = () => {
                         <select
                           value={primarySubteamPrefs[subteam.id] || ''}
                           onChange={(e) => handleSubteamRankChange(subteam.id, parseInt(e.target.value) || 0)}
-                          className="ml-4 border border-gray-300 rounded px-2 py-1"
+                          className="ml-2 border border-gray-300 rounded px-7 py-1 text-right"
                         >
                           <option value="">Rank</option>
                           {Array.from({ length: primarySubteams.length }, (_, i) => (

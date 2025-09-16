@@ -29,7 +29,7 @@ export const getEmailRecipients = async (req: AuthenticatedRequest, res: Respons
     const activeStudents = allUsers.filter(u => u.role === 'student' && u.is_active).map(u => ({
       id: u.id,
       name: u.first_name && u.last_name ? `${u.first_name} ${u.last_name}` : u.email,
-      email: u.email,
+      email: u.school_email? u.school_email:u.email,
       role: u.role,
       is_core_leadership: u.is_core_leadership
     }));

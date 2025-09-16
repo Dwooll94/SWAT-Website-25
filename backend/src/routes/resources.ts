@@ -205,7 +205,7 @@ router.delete('/categories/:id', authenticate, requireMaintenanceAccess, async (
 // Proposal routes for students with maintenance access
 router.post('/propose', authenticate, async (req: AuthenticatedRequest, res) => {
   try {
-    const { change_type, target_id, target_table, proposed_data, description } = req.body;
+    const { change_type, target_id, target_table, category_id, display_order, resource_description, resource_title, resource_url, description } = req.body;
     const user_id = req.user?.userId;
 
     // Check if user has maintenance access
@@ -214,11 +214,22 @@ router.post('/propose', authenticate, async (req: AuthenticatedRequest, res) => 
       return res.status(403).json({ message: 'Maintenance access required' });
     }
 
+        // Build proposed data object
+    const proposedData: any = {};
+    
+    if (change_type === 'resource') {
+      proposedData.title = resource_title;
+      proposedData.description = resource_description;
+      proposedData.url = resource_url;
+      proposedData.category_id = category_id;
+      proposedData.display_order = display_order;
+    }
+
     const result = await pool.query(
       `INSERT INTO proposed_changes (user_id, change_type, target_table, target_id, proposed_data, description)
        VALUES ($1, $2, $3, $4, $5, $6)
        RETURNING *`,
-      [user_id, change_type, target_table || 'resources', target_id, JSON.stringify(proposed_data), description]
+      [user_id, change_type, target_table || 'resources', target_id ? parseInt(target_id) : null, JSON.stringify(proposedData), description]
     );
 
     res.status(201).json({

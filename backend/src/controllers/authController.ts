@@ -389,7 +389,8 @@ export const getAllUsers = async (req: AuthenticatedRequest, res: Response) => {
       updated_at: user.updated_at,
       last_login: user.last_login,
       guardian_count: user.guardian_count,
-      guardians: user.guardians || []
+      guardians: user.guardians || [],
+      is_core_leadership: user.is_core_leadership
     }));
 
     res.json(sanitizedUsers);

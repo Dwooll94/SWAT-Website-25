@@ -56,6 +56,7 @@ router.get('/management', authenticate, async (req: AuthenticatedRequest, res) =
         u.first_name,
         u.last_name,
         u.email,
+        u.school_email,
         u.graduation_year,
         
         -- Primary subteam info
@@ -95,7 +96,7 @@ router.get('/management', authenticate, async (req: AuthenticatedRequest, res) =
           id: row.id,
           first_name: row.first_name,
           last_name: row.last_name,
-          email: row.email,
+          email: row.school_email? row.school_email : row.email,
           graduation_year: row.graduation_year,
           primary_subteam: row.primary_subteam_id ? {
             id: row.primary_subteam_id,
