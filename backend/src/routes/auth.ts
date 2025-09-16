@@ -3,7 +3,7 @@ import { body } from 'express-validator';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
-import { register, login, getProfile, updateRegistrationStatus, changePassword, updateContactInfo, updateGuardianInfo, inviteMentor, getAllUsers, updateUserStatus, updateMaintenanceAccess, updateUserContactInfoAdmin, deleteUser, deactivateOwnAccount, updateUserGuardianInfoAdmin, getUserGuardianInfoAdmin, updateCoreLeadership, updateUserRegistrationStatus } from '../controllers/authController';
+import { register, login, getProfile, updateRegistrationStatus, changePassword, updateContactInfo, updateGuardianInfo, inviteMentor, getAllUsers, updateUserStatus, updateMaintenanceAccess, updateUserContactInfoAdmin, deleteUser, deactivateOwnAccount, updateUserGuardianInfoAdmin, getUserGuardianInfoAdmin, updateCoreLeadership, updateUserRegistrationStatus, verifyEmail, resendVerificationEmail } from '../controllers/authController';
 import { authenticate } from '../middleware/auth';
 
 const router = Router();
@@ -129,6 +129,10 @@ router.put('/contact-info', authenticate, updateContactInfoValidation, updateCon
 router.put('/guardian-info', authenticate, updateGuardianInfoValidation, updateGuardianInfo);
 router.post('/invite-mentor', authenticate, inviteMentorValidation, inviteMentor);
 router.put('/deactivate-account', authenticate, deactivateOwnAccount);
+
+// Email verification routes
+router.get('/verify-email/:token', verifyEmail);
+router.post('/resend-verification', resendVerificationEmail);
 
 // Admin user management routes
 router.get('/users', authenticate, getAllUsers);

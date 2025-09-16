@@ -188,8 +188,9 @@ const Register: React.FC = () => {
         guardians: validGuardians
       };
 
-      await register(userData);
-      navigate('/profile');
+      const response = await register(userData);
+      // Registration successful, show success message instead of navigating
+      setStep(4); // Add a success step
     } catch (err: any) {
       setError(err.message || 'Registration failed');
     } finally {
@@ -208,7 +209,7 @@ const Register: React.FC = () => {
             Join SWAT Team 1806
           </h2>
           <p className="mt-2 text-sm text-gray-600">
-            Step {step} of 3 - Complete your registration
+            {step <= 3 ? `Step ${step} of 3 - Complete your registration` : 'Registration Complete'}
           </p>
         </div>
 
@@ -596,14 +597,56 @@ const Register: React.FC = () => {
               </div>
             </form>
           )}
+
+          {step === 4 && (
+            <div className="space-y-6 text-center">
+              <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 mb-6">
+                <svg className="h-8 w-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              
+              <h3 className="text-2xl font-bold text-green-900">Registration Successful!</h3>
+              
+              <div className="bg-green-50 border border-green-200 rounded-lg p-6">
+                <h4 className="font-semibold text-green-800 mb-2">📧 Check Your Email</h4>
+                <p className="text-green-700 mb-4">
+                  We've sent a verification link to <strong>{formData.email}</strong>.
+                </p>
+                <p className="text-sm text-green-600">
+                  Click the link in your email to verify your account and complete the registration process.
+                </p>
+              </div>
+
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <p className="text-sm text-yellow-700">
+                  <strong>Important:</strong> You won't be able to sign in until you verify your email address.
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                <Link 
+                  to="/login"
+                  className="block w-full bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-md font-medium"
+                >
+                  Go to Sign In
+                </Link>
+                <p className="text-xs text-gray-500">
+                  Don't see the email? Check your spam folder.
+                </p>
+              </div>
+            </div>
+          )}
         </div>
 
-        <p className="text-center text-sm text-gray-600 mt-4">
-          Already have an account?{' '}
-          <Link to="/login" className="font-medium text-blue-600 hover:text-blue-500">
-            Sign in
-          </Link>
-        </p>
+        {step <= 3 && (
+          <p className="text-center text-sm text-gray-600 mt-4">
+            Already have an account?{' '}
+            <Link to="/login" className="font-medium text-blue-600 hover:text-blue-500">
+              Sign in
+            </Link>
+          </p>
+        )}
       </div>
     </div>
   );

@@ -16,7 +16,7 @@ interface AuthContextType {
   user: User | null;
   token: string | null;
   login: (email: string, password: string) => Promise<void>;
-  register: (userData: RegisterData) => Promise<void>;
+  register: (userData: RegisterData) => Promise<any>;
   logout: () => void;
   refreshUser: () => Promise<void>;
   loading: boolean;
@@ -86,19 +86,21 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       api.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
     } catch (error: any) {
       const message = error.response?.data?.message || 'Login failed';
-      throw new Error(message);
+      if(error.response?.data?.email_verified === false){
+        throw error
+      }
+      else{
+        throw new Error(message);
+      }
+
     }
   };
 
-  const register = async (userData: RegisterData): Promise<void> => {
+  const register = async (userData: RegisterData): Promise<any> => {
     try {
       const response = await api.post('/auth/register', userData);
-      const { token: newToken, user: newUser } = response.data;
-      
-      setToken(newToken);
-      setUser(newUser);
-      localStorage.setItem('token', newToken);
-      api.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
+      // Don't auto-login on registration since email verification is required
+      return response.data;
     } catch (error: any) {
       const message = error.response?.data?.message || 'Registration failed';
       throw new Error(message);

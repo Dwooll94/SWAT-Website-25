@@ -97,6 +97,15 @@ CREATE TABLE contract_signatures (
     uploaded_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Email verification tokens
+CREATE TABLE email_verification_tokens (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    token VARCHAR(255) UNIQUE NOT NULL,
+    expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Email invitations for mentors
 CREATE TABLE mentor_invitations (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -237,6 +246,8 @@ CREATE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_users_role ON users(role);
 CREATE INDEX idx_users_graduation_year ON users(graduation_year);
 CREATE INDEX idx_users_registration_status ON users(registration_status);
+CREATE INDEX idx_email_verification_tokens_token ON email_verification_tokens(token);
+CREATE INDEX idx_email_verification_tokens_user_id ON email_verification_tokens(user_id);
 CREATE INDEX idx_proposed_changes_status ON proposed_changes(status);
 CREATE INDEX idx_proposed_changes_user_id ON proposed_changes(user_id);
 

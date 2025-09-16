@@ -18,6 +18,7 @@ import Maintenance from './pages/Maintenance';
 import RosterManagement from './pages/RosterManagement';
 import Roster from './pages/Roster';
 import Unauthorized from './pages/Unauthorized';
+import VerifyEmail from './pages/VerifyEmail';
 import { logHTTPSConfig } from './utils/httpsHelper';
 import './App.css';
 
@@ -36,6 +37,7 @@ function App() {
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/verify-email/:token" element={<VerifyEmail />} />
             <Route path="/about" element={<About />} />
             <Route path="/sponsors" element={<Sponsors />} />
             <Route path="/resources" element={<Resources />} />

@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
 import { Link, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import EmailVerificationPrompt from '../components/EmailVerificationPrompt';
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showEmailVerification, setShowEmailVerification] = useState(false);
+  const [userEmail, setUserEmail] = useState('');
   
   const { login, user } = useAuth();
   const navigate = useNavigate();
@@ -27,15 +30,24 @@ const Login: React.FC = () => {
       await login(email, password);
       navigate(from, { replace: true });
     } catch (err: any) {
-      setError(err.message || 'Login failed');
+      const errorResponse = err.response?.data;
+      // Check if it's an email verification error
+      if (errorResponse?.email_verified === false) {
+        setUserEmail(email);
+        setShowEmailVerification(true);
+        setError('');
+      } else {
+        setError(err.message || errorResponse?.message || 'Login failed');
+      }
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-[60vh] flex items-center justify-center py-12 px-4">
-      <div className="max-w-md w-full space-y-8">
+    <>
+      <div className="min-h-[60vh] flex items-center justify-center py-12 px-4">
+        <div className="max-w-md w-full space-y-8">
         <div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
             Sign in to your account
@@ -101,8 +113,16 @@ const Login: React.FC = () => {
             </button>
           </div>
         </form>
+        </div>
       </div>
-    </div>
+
+      {showEmailVerification && (
+        <EmailVerificationPrompt
+          userEmail={userEmail}
+          onClose={() => setShowEmailVerification(false)}
+        />
+      )}
+    </>
   );
 };
 

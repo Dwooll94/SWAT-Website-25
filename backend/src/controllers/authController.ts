@@ -6,6 +6,7 @@ import { SubteamModel } from '../models/Subteam';
 import { generateToken, extractGraduationYear, isValidSchoolEmail } from '../utils/auth';
 import { AuthenticatedRequest } from '../middleware/auth';
 import { emailService } from '../services/emailService';
+import { EmailVerificationService } from '../utils/emailVerification';
 import { randomBytes } from 'crypto';
 
 export const register = async (req: Request, res: Response) => {
@@ -65,19 +66,34 @@ export const register = async (req: Request, res: Response) => {
     };
 
     const user = await UserModel.createUser(userData);
-    const token = generateToken(user);
+    
+    // Generate email verification token
+    const verificationToken = await EmailVerificationService.createVerificationToken(user.id);
+    
+    // Send verification email
+    const userName = `${user.first_name || ''} ${user.last_name || ''}`.trim();
+    const emailSent = await emailService.sendEmailVerification(
+      user.email,
+      userName || 'User',
+      verificationToken
+    );
+
+    if (!emailSent) {
+      console.error('Failed to send verification email to:', user.email);
+    }
 
     res.status(201).json({
-      message: 'User registered successfully',
-      token,
+      message: 'User registered successfully. Please check your email and click the verification link to activate your account.',
       user: {
         id: user.id,
         email: user.email,
         role: user.role,
         registration_status: user.registration_status,
         first_name: user.first_name,
-        last_name: user.last_name
-      }
+        last_name: user.last_name,
+        email_verified: user.email_verified
+      },
+      verificationEmailSent: emailSent
     });
   } catch (error) {
     console.error('Registration error:', error);
@@ -106,6 +122,15 @@ export const login = async (req: Request, res: Response) => {
     const isValidPassword = await UserModel.validatePassword(password, user.password_hash);
     if (!isValidPassword) {
       return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    // Check if email is verified (except for mentors and admins who might be invited)
+    if (!user.email_verified && user.role === 'student') {
+      return res.status(403).json({ 
+        message: 'Please verify your email address before signing in. Check your email for the verification link.',
+        email_verified: false,
+        user_id: user.id
+      });
     }
 
     await UserModel.updateLastLogin(user.id);
@@ -721,5 +746,69 @@ export const updateUserRegistrationStatus = async (req: AuthenticatedRequest, re
   } catch (error) {
     console.error('Update user registration status error:', error);
     res.status(500).json({ message: 'Server error updating registration status' });
+  }
+};
+
+export const verifyEmail = async (req: Request, res: Response) => {
+  try {
+    const { token } = req.params;
+
+    if (!token) {
+      return res.status(400).json({ message: 'Verification token is required' });
+    }
+
+    const verification = await EmailVerificationService.verifyToken(token);
+    
+    if (!verification.isValid) {
+      return res.status(400).json({ 
+        message: verification.reason === 'Token expired' 
+          ? 'Verification link has expired. Please request a new verification email.' 
+          : 'Invalid verification token.' 
+      });
+    }
+
+    await EmailVerificationService.markEmailAsVerified(verification.userId!);
+
+    res.json({ message: 'Email verified successfully! You can now access your account.' });
+  } catch (error) {
+    console.error('Email verification error:', error);
+    res.status(500).json({ message: 'Server error during email verification' });
+  }
+};
+
+export const resendVerificationEmail = async (req: Request, res: Response) => {
+  try {;
+
+    // Get user details
+    const user = await UserModel.findByEmail(req.body.user_email);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Check if already verified
+    if (user.email_verified) {
+      return res.status(400).json({ message: 'Email is already verified' });
+    }
+
+    // Generate new verification token
+    const verificationToken = await EmailVerificationService.resendVerificationToken(user.id);
+
+    // Send verification email
+    const userName = `${user.first_name || ''} ${user.last_name || ''}`.trim();
+    const emailSent = await emailService.sendEmailVerification(
+      user.email,
+      userName || 'User',
+      verificationToken
+    );
+
+    if (!emailSent) {
+      console.error('Failed to send verification email');
+      return res.status(500).json({ message: 'Failed to send verification email' });
+    }
+
+    res.json({ message: 'Verification email sent successfully' });
+  } catch (error) {
+    console.error('Resend verification email error:', error);
+    res.status(500).json({ message: 'Server error sending verification email' });
   }
 };

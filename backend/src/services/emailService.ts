@@ -231,6 +231,99 @@ S.W.A.T. Team 1806
     return await this.sendEmail(mentorEmail, subject, text, html);
   }
 
+  async sendEmailVerification(userEmail: string, userName: string, verificationToken: string): Promise<boolean> {
+    const subject = 'S.W.A.T. Team 1806 - Verify Your Email Address';
+    const verificationUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/verify-email/${verificationToken}`;
+    
+    const text = `
+Hello ${userName || 'there'},
+
+Thank you for registering with S.W.A.T. Team 1806!
+
+To complete your registration and access your account, please verify your email address by clicking the link below:
+
+${verificationUrl}
+
+This verification link will expire in 24 hours.
+
+If you didn't create an account with us, you can safely ignore this email.
+
+Best regards,
+S.W.A.T. Team 1806
+Smithville Warriors Advancing Technology
+    `;
+
+    const html = `
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .header { background-color: #000000; color: #FFFFFF; padding: 20px; text-align: center; }
+        .content { padding: 20px; max-width: 600px; margin: 0 auto; }
+        .verification-box { background-color: #f0f8f0; padding: 20px; border-left: 4px solid #005728; margin: 20px 0; text-align: center; }
+        .verify-button { 
+            display: inline-block; 
+            background-color: #005728; 
+            color: white; 
+            padding: 15px 30px; 
+            text-decoration: none; 
+            border-radius: 5px; 
+            margin: 15px 0;
+            font-weight: bold;
+        }
+        .verify-button:hover { background-color: #004520; }
+        .warning { background-color: #fff3cd; padding: 10px; border: 1px solid #ffeaa7; border-radius: 4px; margin: 20px 0; }
+        .footer { background-color: #005728; color: #FFFFFF; padding: 15px; text-align: center; margin-top: 30px; }
+        .logo { font-family: Impact, sans-serif; font-size: 24px; letter-spacing: 1px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">S.W.A.T. TEAM 1806</div>
+        <p>Email Verification Required</p>
+    </div>
+    
+    <div class="content">
+        <h2>Welcome to S.W.A.T. Team 1806!</h2>
+        
+        <p>Hello ${userName || 'there'},</p>
+        
+        <p>Thank you for registering with S.W.A.T. Team 1806! We're excited to have you join our robotics team community.</p>
+        
+        <div class="verification-box">
+            <h3>📧 Email Verification Required</h3>
+            <p>To complete your registration and access your account, please verify your email address by clicking the button below:</p>
+            <a href="${verificationUrl}" class="verify-button">Verify My Email Address</a>
+            <p><small>This verification link will expire in 24 hours.</small></p>
+        </div>
+        
+        <p>Once your email is verified, you'll be able to:</p>
+        <ul>
+            <li>Access your team dashboard</li>
+            <li>Update your profile information</li>
+            <li>Participate in team communications</li>
+            <li>Track your progress through the registration process</li>
+        </ul>
+        
+        <div class="warning">
+            <p><strong>🛡️ Security Note:</strong> If you didn't create an account with S.W.A.T. Team 1806, you can safely ignore this email.</p>
+        </div>
+        
+        <p>If the button above doesn't work, you can copy and paste this link into your browser:</p>
+        <p><code>${verificationUrl}</code></p>
+    </div>
+    
+    <div class="footer">
+        <p>&copy; 2025 S.W.A.T. Team 1806 - Smithville Warriors Advancing Technology</p>
+    </div>
+</body>
+</html>
+    `;
+
+    return await this.sendEmail(userEmail, subject, text, html);
+  }
+
   async sendMassEmail({ 
     to, 
     recipientName, 

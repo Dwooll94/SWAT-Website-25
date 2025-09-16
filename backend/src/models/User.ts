@@ -21,6 +21,7 @@ export interface User {
   medical_conditions?: string;
   heard_about_team?: string;
   maintenance_access: boolean;
+  email_verified: boolean;
 }
 
 export interface CreateUserData {
@@ -242,8 +243,8 @@ export class UserModel {
     
     const result = await pool.query(
       `INSERT INTO users (
-        email, password_hash, role, registration_status, first_name, last_name, maintenance_access
-      ) VALUES ($1, $2, 'mentor', 'complete', $3, $4, true)
+        email, password_hash, role, registration_status, first_name, last_name, maintenance_access, email_verified
+      ) VALUES ($1, $2, 'mentor', 'complete', $3, $4, true, true)
       RETURNING *`,
       [
         mentorData.email,
@@ -327,6 +328,11 @@ export class UserModel {
       if (value !== undefined) {
         updateFields.push(`${key} = $${paramCount}`);
         values.push(value === '' ? null : value);
+        paramCount++;
+      }
+      else if(key === 'school_email'){
+        updateFields.push(`${key} = $${paramCount}`);
+        values.push(null);
         paramCount++;
       }
     });
