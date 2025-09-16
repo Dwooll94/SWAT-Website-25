@@ -1701,7 +1701,7 @@ const Maintenance: React.FC = () => {
               ) : (
                 <div className="grid gap-4">
                   {robots.map((robot) => (
-                    <div key={robot.id} className="border border-gray-200 rounded-lg p-4">
+                    <div key={robot.id} className="border border-gray-200 rounded-lg p-4 overflow-auto">
                       <div className="flex justify-between items-start">
                         <div className="flex-1">
                           <div className="flex items-center gap-4 mb-2">
@@ -1883,7 +1883,7 @@ const Maintenance: React.FC = () => {
               ) : (
                 <div className="grid gap-4">
                   {sponsors.map((sponsor) => (
-                    <div key={sponsor.id} className="border border-gray-200 rounded-lg p-4">
+                    <div key={sponsor.id} className="border border-gray-200 rounded-lg p-4 overflow-auto">
                       <div className="flex justify-between items-start">
                         <div className="flex-1">
                           <div className="flex items-center gap-4 mb-2">
@@ -2037,7 +2037,7 @@ const Maintenance: React.FC = () => {
               {/* Categories List */}
               <div className="grid gap-2">
                 {resourceCategories.map((category) => (
-                  <div key={category.id} className="border border-gray-200 rounded-lg p-3">
+                  <div key={category.id} className="border border-gray-200 rounded-lg p-3 overflow-auto">
                     <div className="flex justify-between items-center">
                       <div>
                         <h5 className="font-medium text-gray-900">{category.name}</h5>
@@ -2179,7 +2179,7 @@ const Maintenance: React.FC = () => {
                   {category.resources && category.resources.length > 0 ? (
                     <div className="grid gap-2">
                       {category.resources.map((resource) => (
-                        <div key={resource.id} className="border border-gray-200 rounded-lg p-3">
+                        <div key={resource.id} className="border border-gray-200 rounded-lg p-3 overflow-auto">
                           <div className="flex justify-between items-start">
                             <div className="flex-1">
                               <h5 className="font-medium text-gray-900">{resource.title}</h5>
