@@ -71,7 +71,7 @@ router.get('/:id', async (req, res) => {
 // Create new robot (maintenance access required)
 router.post('/', authenticate, requireMaintenanceAccess, upload.single('image'), async (req, res) => {
   try {
-    const { year, name, game, description, achievements } = req.body;
+    const { year, name, game, description, achievements, cad_link, code_link } = req.body;
 
     if (!year || !name || !game) {
       // Clean up uploaded file if validation fails
@@ -104,10 +104,10 @@ router.post('/', authenticate, requireMaintenanceAccess, upload.single('image'),
     const imagePath = req.file ? `/uploads/robots/${req.file.filename}` : null;
 
     const result = await pool.query(
-      `INSERT INTO robots (year, name, game, description, image_path, achievements)
-       VALUES ($1, $2, $3, $4, $5, $6)
+      `INSERT INTO robots (year, name, game, description, image_path, achievements, cad_link, code_link)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
        RETURNING *`,
-      [yearNumber, name.trim(), game.trim(), description || null, imagePath, achievements || null]
+      [yearNumber, name.trim(), game.trim(), description || null, imagePath, achievements || null, cad_link || null, code_link || null]
     );
 
     res.status(201).json({
@@ -130,7 +130,7 @@ router.post('/', authenticate, requireMaintenanceAccess, upload.single('image'),
 router.put('/:id', authenticate, requireMaintenanceAccess, upload.single('image'), async (req, res) => {
   try {
     const { id } = req.params;
-    const { year, name, game, description, achievements } = req.body;
+    const { year, name, game, description, achievements, cad_link, code_link } = req.body;
 
     // Get existing robot to check for image replacement
     const existingResult = await pool.query('SELECT * FROM robots WHERE id = $1', [id]);
@@ -189,8 +189,10 @@ router.put('/:id', authenticate, requireMaintenanceAccess, upload.single('image'
            game = COALESCE($3, game),
            description = COALESCE($4, description),
            image_path = $5,
-           achievements = COALESCE($6, achievements)
-       WHERE id = $7 
+           achievements = COALESCE($6, achievements),
+           cad_link = COALESCE($7, cad_link),
+           code_link = COALESCE($8, code_link)
+       WHERE id = $9 
        RETURNING *`,
       [
         year ? parseInt(year) : null,
@@ -199,6 +201,8 @@ router.put('/:id', authenticate, requireMaintenanceAccess, upload.single('image'
         description || null,
         imagePath,
         achievements || null,
+        cad_link || null,
+        code_link || null,
         id
       ]
     );

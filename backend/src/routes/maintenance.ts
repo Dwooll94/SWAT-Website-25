@@ -53,6 +53,38 @@ const upload = multer({
   }
 });
 
+// Configure multer for page images
+const pageImageStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const uploadDir = path.join(__dirname, '../../../frontend/public/uploads/pages');
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const timestamp = Date.now();
+    const sanitizedName = file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
+    cb(null, `page-image-${timestamp}-${sanitizedName}`);
+  }
+});
+
+const pageImageUpload = multer({
+  storage: pageImageStorage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = /jpeg|jpg|png|gif|webp|svg/;
+    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = allowedTypes.test(file.mimetype) || file.mimetype === 'image/svg+xml';
+    
+    if (mimetype && extname) {
+      return cb(null, true);
+    } else {
+      cb(new Error('Only image files (JPEG, PNG, GIF, WebP, SVG) are allowed'));
+    }
+  }
+});
+
 // Get all proposed changes (for mentors/admins)
 router.get('/proposals', authenticate, async (req: AuthenticatedRequest, res) => {
   try {
@@ -79,10 +111,104 @@ router.get('/proposals', authenticate, async (req: AuthenticatedRequest, res) =>
         p.created_at DESC
     `);
 
-    res.json(result.rows);
+    // Parse the proposed_data JSON for each row
+    const processedRows = result.rows.map(row => ({
+      ...row,
+      proposed_data: typeof row.proposed_data === 'string' ? JSON.parse(row.proposed_data) : row.proposed_data
+    }));
+    
+    res.json(processedRows);
   } catch (error) {
     console.error('Error fetching proposals:', error);
     res.status(500).json({ message: 'Server error fetching proposals' });
+  }
+});
+
+// Upload image for pages
+router.post('/upload-page-image', authenticate, pageImageUpload.single('image'), async (req: AuthenticatedRequest, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'No image file uploaded' });
+    }
+
+    const webPath = `/uploads/pages/${req.file.filename}`;
+    const markdownEmbed = `![Image description](${webPath})`;
+    
+    res.json({
+      message: 'Image uploaded successfully',
+      file_path: webPath,
+      markdown: markdownEmbed,
+      filename: req.file.filename,
+      original_name: req.file.originalname,
+      size: req.file.size
+    });
+  } catch (error) {
+    console.error('Error uploading page image:', error);
+    res.status(500).json({ message: 'Server error uploading image' });
+  }
+});
+
+// Get uploaded page images
+router.get('/page-images', authenticate, async (req: AuthenticatedRequest, res) => {
+  try {
+    const uploadsDir = path.join(__dirname, '../../../frontend/public/uploads/pages');
+    
+    if (!fs.existsSync(uploadsDir)) {
+      return res.json({ images: [] });
+    }
+
+    const files = fs.readdirSync(uploadsDir);
+    const imageFiles = files.filter(file => {
+      const ext = path.extname(file).toLowerCase();
+      return ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg'].includes(ext);
+    });
+
+    const images = imageFiles.map(filename => {
+      const filePath = path.join(uploadsDir, filename);
+      const stats = fs.statSync(filePath);
+      const webPath = `/uploads/pages/${filename}`;
+      
+      return {
+        filename,
+        web_path: webPath,
+        markdown: `![Image description](${webPath})`,
+        size: stats.size,
+        uploaded_at: stats.birthtime,
+        original_name: filename.replace(/^page-image-\d+-/, '')
+      };
+    });
+
+    // Sort by upload date, newest first
+    images.sort((a, b) => new Date(b.uploaded_at).getTime() - new Date(a.uploaded_at).getTime());
+
+    res.json({ images });
+  } catch (error) {
+    console.error('Error fetching page images:', error);
+    res.status(500).json({ message: 'Server error fetching images' });
+  }
+});
+
+// Delete page image
+router.delete('/page-images/:filename', authenticate, async (req: AuthenticatedRequest, res) => {
+  try {
+    const { filename } = req.params;
+    
+    // Security check: ensure filename only contains safe characters
+    if (!/^page-image-\d+-[a-zA-Z0-9._-]+$/.test(filename)) {
+      return res.status(400).json({ message: 'Invalid filename' });
+    }
+
+    const filePath = path.join(__dirname, '../../../frontend/public/uploads/pages', filename);
+    
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ message: 'Image not found' });
+    }
+
+    fs.unlinkSync(filePath);
+    res.json({ message: 'Image deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting page image:', error);
+    res.status(500).json({ message: 'Server error deleting image' });
   }
 });
 
@@ -146,8 +272,10 @@ router.post('/propose', authenticate, upload.single('image'), async (req: Authen
         year: parseInt(year),
         name: name.trim(),
         game: game.trim(),
-        robot_description: req.body.description || null,
-        achievements: achievements || null
+        robot_description: req.body.description[0] || null,
+        achievements: achievements || null,
+        cad_link: req.body.cad_link || null,
+        code_link: req.body.code_link || null
       };
 
       if (req.file) {
@@ -307,6 +435,43 @@ router.post('/propose', authenticate, upload.single('image'), async (req: Authen
       });
     }
 
+    if (change_type === 'page' || change_type === 'page_delete') {
+      // Handle page proposals
+      let processedData = proposed_data;
+
+      if (change_type === 'page') {
+        // Validate required fields for page create/update
+        if (!processedData || !processedData.title || !processedData.slug) {
+          return res.status(400).json({ message: 'Page title and slug are required' });
+        }
+
+        // Ensure data consistency
+        processedData = {
+          ...processedData,
+          slug: processedData.slug.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-'),
+          is_published: !!processedData.is_published
+        };
+      }
+
+      const result = await pool.query(`
+        INSERT INTO proposed_changes (
+          user_id, change_type, target_table, target_id, proposed_data, status, description
+        ) VALUES ($1, $2, $3, $4, $5, 'pending', $6) RETURNING *
+      `, [
+        currentUser.id,
+        change_type,
+        'pages',
+        target_id ? parseInt(target_id) : null,
+        JSON.stringify(processedData),
+        description || `Proposed page ${change_type === 'page_delete' ? 'deletion' : (target_id ? 'update' : 'creation')}`
+      ]);
+
+      return res.status(201).json({
+        message: 'Page change proposed successfully and is awaiting review',
+        proposal: result.rows[0]
+      });
+    }
+
     // If we get here, it's an unsupported change type
     if (req.file && fs.existsSync(req.file.path)) {
       fs.unlinkSync(req.file.path);
@@ -359,7 +524,9 @@ router.put('/proposals/:id/:action', authenticate, async (req: AuthenticatedRequ
 
     if (action === 'approve') {
       // Apply the proposed change
-      const proposedData = proposal.proposed_data;
+      const proposedData = typeof proposal.proposed_data === 'string' 
+        ? JSON.parse(proposal.proposed_data) 
+        : proposal.proposed_data;
       
       if (proposal.change_type === 'slideshow_image') {
         // Move the file from proposals to slideshow directory
@@ -449,15 +616,15 @@ router.put('/proposals/:id/:action', authenticate, async (req: AuthenticatedRequ
             }
 
             await pool.query(
-              'UPDATE robots SET year = $1, name = $2, game = $3, description = $4, achievements = $5, image_path = COALESCE($6, image_path) WHERE id = $7',
-              [proposedData.year, proposedData.name, proposedData.game, proposedData.robot_description, proposedData.achievements, imagePath, proposal.target_id]
+              'UPDATE robots SET year = $1, name = $2, game = $3, description = $4, achievements = $5, image_path = COALESCE($6, image_path), cad_link = $7, code_link = $8 WHERE id = $9',
+              [proposedData.year, proposedData.name, proposedData.game, proposedData.robot_description, proposedData.achievements, imagePath, proposedData.cad_link || null, proposedData.code_link || null, proposal.target_id]
             );
           }
         } else {
           // Create new robot
           await pool.query(
-            'INSERT INTO robots (year, name, game, description, achievements, image_path) VALUES ($1, $2, $3, $4, $5, $6)',
-            [proposedData.year, proposedData.name, proposedData.game, proposedData.robot_description, proposedData.achievements, imagePath]
+            'INSERT INTO robots (year, name, game, description, achievements, image_path, cad_link, code_link) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
+            [proposedData.year, proposedData.name, proposedData.game, proposedData.robot_description, proposedData.achievements, imagePath, proposedData.cad_link || null, proposedData.code_link || null]
           );
         }
       } else if (proposal.change_type === 'robot_delete') {
@@ -617,25 +784,46 @@ router.put('/proposals/:id/:action', authenticate, async (req: AuthenticatedRequ
             await pool.query('UPDATE subteams SET is_active = false WHERE id = $1', [proposal.target_id]);
           }
         }
+      } else if (proposal.change_type === 'page') {
+        // Handle page creation/update
+        if (proposal.target_id) {
+          // Update existing page
+          await pool.query(
+            'UPDATE pages SET slug = $1, title = $2, content = $3, is_published = $4, updated_by = $5, updated_at = CURRENT_TIMESTAMP WHERE id = $6',
+            [proposedData.slug, proposedData.title, proposedData.content, proposedData.is_published, proposal.requested_by, proposal.target_id]
+          );
+        } else {
+          // Create new page
+          await pool.query(
+            'INSERT INTO pages (slug, title, content, is_published, created_by) VALUES ($1, $2, $3, $4, $5)',
+            [proposedData.slug, proposedData.title, proposedData.content, proposedData.is_published, proposal.requested_by]
+          );
+        }
+      } else if (proposal.change_type === 'page_delete') {
+        // Handle page deletion
+        if (proposal.target_id) {
+          await pool.query('DELETE FROM pages WHERE id = $1', [proposal.target_id]);
+        }
       }
     } else if (action === 'reject') {
       // Clean up the proposed file
+      const proposedData = typeof proposal.proposed_data === 'string' 
+        ? JSON.parse(proposal.proposed_data) 
+        : proposal.proposed_data;
+        
       if (proposal.change_type === 'slideshow_image') {
-        const proposedData = proposal.proposed_data;
         const filePath = path.join(__dirname, '../../../frontend/public', proposedData.file_path);
         if (fs.existsSync(filePath)) {
           fs.unlinkSync(filePath);
         }
-      } else if (proposal.change_type === 'robot' && proposal.proposed_data.image_path) {
+      } else if (proposal.change_type === 'robot' && proposedData.image_path) {
         // Clean up robot proposal image
-        const proposedData = proposal.proposed_data;
         const filePath = path.join(__dirname, '../../../frontend/public', proposedData.image_path);
         if (fs.existsSync(filePath)) {
           fs.unlinkSync(filePath);
         }
-      } else if (proposal.change_type === 'sponsor' && proposal.proposed_data.logo_path) {
+      } else if (proposal.change_type === 'sponsor' && proposedData.logo_path) {
         // Clean up sponsor proposal logo
-        const proposedData = proposal.proposed_data;
         const filePath = path.join(__dirname, '../../../frontend/public', proposedData.logo_path);
         if (fs.existsSync(filePath)) {
           fs.unlinkSync(filePath);

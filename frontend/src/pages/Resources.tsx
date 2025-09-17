@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../contexts/AuthContext';
+import { renderTextWithNewlines } from '../utils/textUtils';
 
 interface Resource {
   id: number;
@@ -292,7 +293,7 @@ const Resources: React.FC = () => {
                   {category.name}
                 </h2>
                 {category.description && (
-                  <p className="text-gray-700">{category.description}</p>
+                  <div className="text-gray-700">{renderTextWithNewlines(category.description)}</div>
                 )}
               </div>
               
@@ -314,7 +315,7 @@ const Resources: React.FC = () => {
                       )}
                     </h3>
                     {resource.description && (
-                      <p className="text-gray-600 text-sm mb-3">{resource.description}</p>
+                      <div className="text-gray-600 text-sm mb-3">{renderTextWithNewlines(resource.description)}</div>
                     )}
                     {resource.url && (
                       <div className="mt-auto">

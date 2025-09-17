@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { api } from '../contexts/AuthContext';
+import { renderTextWithNewlines, truncateTextWithNewlines } from '../utils/textUtils';
 
 interface SlideshowImage {
   id: number;
@@ -13,7 +14,7 @@ interface SlideshowImage {
 
 interface ProposedChange {
   id: number;
-  change_type: 'slideshow_image' | 'robot' | 'robot_delete' | 'sponsor' | 'sponsor_delete' | 'resource' | 'resource_delete' | 'resource_category' | 'resource_category_delete' | 'subteam_create' | 'subteam_update' | 'subteam_delete';
+  change_type: 'slideshow_image' | 'robot' | 'robot_delete' | 'sponsor' | 'sponsor_delete' | 'resource' | 'resource_delete' | 'resource_category' | 'resource_category_delete' | 'subteam_create' | 'subteam_update' | 'subteam_delete' | 'page' | 'page_delete';
   proposed_data: any;
   user_id: string;
   proposed_by_name: string;
@@ -33,6 +34,8 @@ interface Robot {
   description: string | null;
   image_path: string | null;
   achievements: string | null;
+  cad_link: string | null;
+  code_link: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -79,9 +82,32 @@ interface Subteam {
   is_active: boolean;
 }
 
+interface Page {
+  id: number;
+  slug: string;
+  title: string;
+  content?: string;
+  is_published: boolean;
+  created_at: string;
+  updated_at: string;
+  created_by?: string;
+  updated_by?: string;
+  created_by_name?: string;
+  updated_by_name?: string;
+}
+
+interface PageImage {
+  filename: string;
+  web_path: string;
+  markdown: string;
+  size: number;
+  uploaded_at: string;
+  original_name: string;
+}
+
 const Maintenance: React.FC = () => {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<'slideshow' | 'robots' | 'sponsors' | 'resources' | 'subteams' | 'proposals'>('slideshow');
+  const [activeTab, setActiveTab] = useState<'slideshow' | 'robots' | 'sponsors' | 'resources' | 'subteams' | 'pages' | 'proposals'>('slideshow');
   const [slideshowImages, setSlideshowImages] = useState<SlideshowImage[]>([]);
   const [sponsors, setSponsors] = useState<Sponsor[]>([]);
   const [resourceCategories, setResourceCategories] = useState<ResourceCategory[]>([]);
@@ -114,6 +140,8 @@ const Maintenance: React.FC = () => {
     game: '',
     description: '',
     achievements: '',
+    cad_link: '',
+    code_link: '',
     image: null as File | null
   });
 
@@ -151,6 +179,18 @@ const Maintenance: React.FC = () => {
     is_primary: true,
     display_order: 0
   });
+  
+  // Pages state
+  const [pages, setPages] = useState<Page[]>([]);
+  const [editingPage, setEditingPage] = useState<Page | null>(null);
+  const [pageForm, setPageForm] = useState({
+    slug: '',
+    title: '',
+    content: '',
+    is_published: false
+  });
+  const [pageImages, setPageImages] = useState<PageImage[]>([]);
+  const [imageUploadProgress, setImageUploadProgress] = useState(false);
 
   const hasMaintenanceAccess = user?.maintenance_access;
   const isStudent = user?.role === 'student';
@@ -163,6 +203,8 @@ const Maintenance: React.FC = () => {
     fetchSponsors();
     fetchResourceCategories();
     fetchSubteams();
+    fetchPages();
+    fetchPageImages();
   }, []);
 
   const fetchSlideshowImages = async () => {
@@ -226,6 +268,16 @@ const Maintenance: React.FC = () => {
     }
   };
 
+  const fetchPages = async () => {
+    try {
+      const response = await api.get('/pages');
+      setPages(response.data || []);
+    } catch (err: any) {
+      console.error('Error fetching pages:', err);
+      setError('Failed to load pages');
+    }
+  };
+
   const handleRobotSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -250,6 +302,12 @@ const Maintenance: React.FC = () => {
       }
       if (robotForm.image) {
         formData.append('image', robotForm.image);
+      }
+      if (robotForm.cad_link) {
+        formData.append('cad_link', robotForm.cad_link);
+      }
+      if (robotForm.code_link) {
+        formData.append('code_link', robotForm.code_link);
       }
 
       if (hasMaintenanceAccess && !isStudent) {
@@ -296,6 +354,8 @@ const Maintenance: React.FC = () => {
         game: '',
         description: '',
         achievements: '',
+        cad_link: '',
+        code_link: '',
         image: null
       });
       setEditingRobot(null);
@@ -315,6 +375,8 @@ const Maintenance: React.FC = () => {
         game: robot.game,
         description: robot.description || '',
         achievements: robot.achievements || '',
+        cad_link: robot.cad_link || '',
+        code_link: robot.code_link || '',
         image: null
       });
       setEditingRobot(robot);
@@ -326,6 +388,8 @@ const Maintenance: React.FC = () => {
         game: robot.game,
         description: robot.description || '',
         achievements: robot.achievements || '',
+        cad_link: robot.cad_link || '',
+        code_link: robot.code_link || '',
         image: null
       });
       setEditingRobot(robot);
@@ -380,6 +444,8 @@ const Maintenance: React.FC = () => {
       game: '',
       description: '',
       achievements: '',
+      cad_link: '',
+      code_link: '',
       image: null
     });
     setEditingRobot(null);
@@ -523,6 +589,224 @@ const Maintenance: React.FC = () => {
       logo: null
     });
     setEditingSponsor(null);
+  };
+
+  // Pages management functions
+  const handlePageSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!pageForm.title.trim() || !pageForm.slug.trim()) {
+      setError('Page title and slug are required');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError('');
+
+      if (hasMaintenanceAccess && !isStudent) {
+        // Direct access for mentors/admins
+        if (editingPage) {
+          await api.put(`/pages/${editingPage.id}`, pageForm);
+          setSuccessMessage('Page updated successfully!');
+        } else {
+          await api.post('/pages', pageForm);
+          setSuccessMessage('Page created successfully!');
+        }
+        fetchPages();
+      } else if (hasMaintenanceAccess) {
+        // Proposal system for students
+        const proposalData: any = {
+          change_type: 'page',
+          target_table: 'pages',
+          proposed_data: pageForm,
+          description: editingPage 
+            ? `Proposed page update: ${pageForm.title}`
+            : `Proposed new page: ${pageForm.title}`
+        };
+        
+        if (editingPage) {
+          proposalData.target_id = editingPage.id;
+        }
+
+        await api.post('/maintenance/propose', proposalData);
+        setSuccessMessage('Page change proposed for review!');
+        fetchProposedChanges();
+      } else {
+        setError("You don't have permission to manage pages");
+      }
+
+      // Reset form
+      setPageForm({
+        slug: '',
+        title: '',
+        content: '',
+        is_published: false
+      });
+      setEditingPage(null);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to save page');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEditPage = (page: Page) => {
+    setPageForm({
+      slug: page.slug,
+      title: page.title,
+      content: page.content || '',
+      is_published: page.is_published
+    });
+    setEditingPage(page);
+  };
+
+  const handleDeletePage = async (pageId: number) => {
+    if (!window.confirm('Are you sure you want to delete this page? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      
+      if (hasMaintenanceAccess && !isStudent) {
+        // Direct delete for mentors/admins
+        await api.delete(`/pages/${pageId}`);
+        setSuccessMessage('Page deleted successfully!');
+        fetchPages();
+      } else if (hasMaintenanceAccess) {
+        // Propose deletion for students
+        const page = pages.find(p => p.id === pageId);
+        const proposalData: any = {
+          change_type: 'page_delete',
+          target_table: 'pages',
+          target_id: pageId,
+          proposed_data: {},
+          description: `Proposed deletion of page: ${page?.title || 'Unknown'}`
+        };
+
+        await api.post('/maintenance/propose', proposalData);
+        setSuccessMessage('Page deletion proposed for review!');
+        fetchProposedChanges();
+      } else {
+        setError("You don't have permission to delete pages");
+      }
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to delete page');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCancelPageEdit = () => {
+    setPageForm({
+      slug: '',
+      title: '',
+      content: '',
+      is_published: false
+    });
+    setEditingPage(null);
+  };
+
+  const handleTogglePageStatus = async (pageId: number, currentStatus: boolean) => {
+    try {
+      setLoading(true);
+      
+      if (hasMaintenanceAccess && !isStudent) {
+        if (currentStatus) {
+          await api.patch(`/pages/${pageId}/unpublish`);
+          setSuccessMessage('Page unpublished successfully!');
+        } else {
+          await api.patch(`/pages/${pageId}/publish`);
+          setSuccessMessage('Page published successfully!');
+        }
+        fetchPages();
+      } else {
+        setError("You don't have permission to publish/unpublish pages");
+      }
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to update page status');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Image management functions
+  const fetchPageImages = async () => {
+    try {
+      const response = await api.get('/maintenance/page-images');
+      setPageImages(response.data.images || []);
+    } catch (err: any) {
+      console.error('Error fetching page images:', err);
+      setError('Failed to load page images');
+    }
+  };
+
+  const handlePageImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
+    if (!allowedTypes.includes(file.type)) {
+      setError('Please select a valid image file (JPEG, PNG, GIF, WebP, or SVG)');
+      return;
+    }
+
+    // Validate file size (10MB limit)
+    if (file.size > 10 * 1024 * 1024) {
+      setError('File size must be less than 10MB');
+      return;
+    }
+
+    try {
+      setImageUploadProgress(true);
+      setError('');
+      
+      const formData = new FormData();
+      formData.append('image', file);
+
+      const response = await api.post('/maintenance/upload-page-image', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+
+      setSuccessMessage(`Image uploaded successfully! Markdown: ${response.data.markdown}`);
+      fetchPageImages(); // Refresh the images list
+      
+      // Reset the file input
+      event.target.value = '';
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to upload image');
+    } finally {
+      setImageUploadProgress(false);
+    }
+  };
+
+  const handleDeletePageImage = async (filename: string) => {
+    if (!window.confirm('Are you sure you want to delete this image? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      await api.delete(`/maintenance/page-images/${filename}`);
+      setSuccessMessage('Image deleted successfully!');
+      fetchPageImages(); // Refresh the images list
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to delete image');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const copyMarkdownToClipboard = async (markdown: string) => {
+    try {
+      await navigator.clipboard.writeText(markdown);
+      setSuccessMessage('Markdown copied to clipboard!');
+    } catch (err) {
+      console.error('Failed to copy to clipboard:', err);
+      setError('Failed to copy to clipboard');
+    }
   };
 
   // Resource management functions
@@ -970,6 +1254,7 @@ const Maintenance: React.FC = () => {
         fetchRobots(); // Also refresh robots when robot proposals are approved
         fetchSponsors(); // Refresh sponsors when sponsor proposals are approved
         fetchResourceCategories(); // Refresh resources when resource proposals are approved
+        fetchPages(); // Refresh pages when page proposals are approved
       }
     } catch (err: any) {
       setError(err.response?.data?.message || `Failed to ${action} proposal`);
@@ -1066,6 +1351,18 @@ const Maintenance: React.FC = () => {
           >
             Resources
           </button>
+          {hasMaintenanceAccess && (
+            <button
+              onClick={() => setActiveTab('pages')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
+                activeTab === 'pages'
+                  ? 'border-swat-green text-swat-green'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              Pages
+            </button>
+          )}
           {hasMaintenanceAccess && (
             <button
               onClick={() => setActiveTab('subteams')}
@@ -1303,7 +1600,8 @@ const Maintenance: React.FC = () => {
                            proposal.change_type === 'subteam_create' ? 'Subteam Creation' :
                            proposal.change_type === 'subteam_update' ? 'Subteam Update' :
                            proposal.change_type === 'subteam_delete' ? 'Subteam Deletion' :
-                           proposal.change_type}
+                           proposal.change_type === 'page' ? 'Page Addition/Update' :
+                           proposal.change_type === 'page_delete' ? 'Page Deletion' : proposal.change_type}
                         </h3>
                         <p className="text-sm text-gray-600">
                           Proposed by {proposal.proposed_by_name} on {new Date(proposal.created_at).toLocaleDateString()}
@@ -1352,14 +1650,32 @@ const Maintenance: React.FC = () => {
                             <strong>Game:</strong> {proposal.proposed_data.game}
                           </p>
                           {proposal.proposed_data.robot_description && (
-                            <p className="text-sm text-gray-700 mb-2">
-                              <strong>Description:</strong> {proposal.proposed_data.robot_description}
-                            </p>
+                            <div className="text-sm text-gray-700 mb-2">
+                              <strong>Description:</strong> {renderTextWithNewlines(
+                                Array.isArray(proposal.proposed_data.robot_description) 
+                                  ? proposal.proposed_data.robot_description.join(' ')
+                                  : proposal.proposed_data.robot_description
+                              )}
+                            </div>
                           )}
                           {proposal.proposed_data.achievements && (
-                            <p className="text-sm text-gray-700 mb-2">
-                              <strong>Achievements:</strong> {proposal.proposed_data.achievements}
-                            </p>
+                            <div className="text-sm text-gray-700 mb-2">
+                              <strong>Achievements:</strong> {renderTextWithNewlines(
+                                Array.isArray(proposal.proposed_data.achievements) 
+                                  ? proposal.proposed_data.achievements.join(' ')
+                                  : proposal.proposed_data.achievements
+                              )}
+                            </div>
+                          )}
+                          {proposal.proposed_data.cad_link && (
+                            <div className="text-sm text-gray-700 mb-2">
+                              <strong>CAD Link:</strong> <a href={proposal.proposed_data.cad_link} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">{proposal.proposed_data.cad_link}</a>
+                            </div>
+                          )}
+                          {proposal.proposed_data.code_link && (
+                            <div className="text-sm text-gray-700 mb-2">
+                              <strong>Code Link:</strong> <a href={proposal.proposed_data.code_link} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">{proposal.proposed_data.code_link}</a>
+                            </div>
                           )}
                           {proposal.proposed_data.image_path && (
                             <div className="mt-2">
@@ -1432,9 +1748,9 @@ const Maintenance: React.FC = () => {
                             <strong>Title:</strong> {proposal.proposed_data.title}
                           </p>
                           {proposal.proposed_data.description && (
-                            <p className="text-sm text-gray-700 mb-2">
-                              <strong>Description:</strong> {proposal.proposed_data.description}
-                            </p>
+                            <div className="text-sm text-gray-700 mb-2">
+                              <strong>Description:</strong> {renderTextWithNewlines(proposal.proposed_data.description)}
+                            </div>
                           )}
                           {proposal.proposed_data.url && (
                             <p className="text-sm text-gray-700 mb-2">
@@ -1464,9 +1780,9 @@ const Maintenance: React.FC = () => {
                             <strong>Name:</strong> {proposal.proposed_data.name}
                           </p>
                           {proposal.proposed_data.description && (
-                            <p className="text-sm text-gray-700 mb-2">
-                              <strong>Description:</strong> {proposal.proposed_data.description}
-                            </p>
+                            <div className="text-sm text-gray-700 mb-2">
+                              <strong>Description:</strong> {renderTextWithNewlines(proposal.proposed_data.description)}
+                            </div>
                           )}
                           <p className="text-sm text-gray-700 mb-2">
                             <strong>Display Order:</strong> {proposal.proposed_data.display_order}
@@ -1488,9 +1804,9 @@ const Maintenance: React.FC = () => {
                             <strong>Name:</strong> {proposal.proposed_data.name}
                           </p>
                           {proposal.proposed_data.description && (
-                            <p className="text-sm text-gray-700 mb-2">
-                              <strong>Description:</strong> {proposal.proposed_data.description}
-                            </p>
+                            <div className="text-sm text-gray-700 mb-2">
+                              <strong>Description:</strong> {renderTextWithNewlines(proposal.proposed_data.description)}
+                            </div>
                           )}
                           <p className="text-sm text-gray-700 mb-2">
                             <strong>Type:</strong> {proposal.proposed_data.is_primary ? 'Primary' : 'Secondary'} Subteam
@@ -1507,9 +1823,9 @@ const Maintenance: React.FC = () => {
                             <strong>Name:</strong> {proposal.proposed_data.name}
                           </p>
                           {proposal.proposed_data.description && (
-                            <p className="text-sm text-gray-700 mb-2">
-                              <strong>Description:</strong> {proposal.proposed_data.description}
-                            </p>
+                            <div className="text-sm text-gray-700 mb-2">
+                              <strong>Description:</strong> {renderTextWithNewlines(proposal.proposed_data.description)}
+                            </div>
                           )}
                           <p className="text-sm text-gray-700 mb-2">
                             <strong>Type:</strong> {proposal.proposed_data.is_primary ? 'Primary' : 'Secondary'} Subteam
@@ -1524,6 +1840,35 @@ const Maintenance: React.FC = () => {
                         <div>
                           <p className="text-sm text-gray-700">
                             This proposal requests deletion of a subteam.
+                          </p>
+                        </div>
+                      )}
+
+                      {proposal.change_type === 'page' && (
+                        <div>
+                          <p className="text-sm text-gray-700 mb-2">
+                            <strong>Title:</strong> {proposal.proposed_data.title}
+                          </p>
+                          <p className="text-sm text-gray-700 mb-2">
+                            <strong>Slug:</strong> /{proposal.proposed_data.slug}
+                          </p>
+                          {proposal.proposed_data.content && (
+                            <div className="mb-2">
+                              <p className="text-sm text-gray-700">
+                                <strong>Content Preview:</strong> {renderTextWithNewlines(truncateTextWithNewlines(proposal.proposed_data.content, 200))}
+                              </p>
+                            </div>
+                          )}
+                          <p className="text-sm text-gray-700 mb-2">
+                            <strong>Status:</strong> {proposal.proposed_data.is_published ? 'Published' : 'Draft'}
+                          </p>
+                        </div>
+                      )}
+                      
+                      {proposal.change_type === 'page_delete' && (
+                        <div>
+                          <p className="text-sm text-gray-700">
+                            This proposal requests deletion of a page from the website.
                           </p>
                         </div>
                       )}
@@ -1559,7 +1904,7 @@ const Maintenance: React.FC = () => {
 
                     {proposal.review_comments && (
                       <div className="mt-3 p-3 bg-gray-50 rounded text-sm">
-                        <strong>Review Comments:</strong> {proposal.review_comments}
+                        <strong>Review Comments:</strong> {renderTextWithNewlines(proposal.review_comments)}
                       </div>
                     )}
                   </div>
@@ -1667,6 +2012,32 @@ const Maintenance: React.FC = () => {
                 />
               </div>
 
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  CAD Link (optional)
+                </label>
+                <input
+                  type="url"
+                  value={robotForm.cad_link}
+                  onChange={(e) => setRobotForm({...robotForm, cad_link: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-swat-green"
+                  placeholder="https://example.com/cad-files"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Code Link (optional)
+                </label>
+                <input
+                  type="url"
+                  value={robotForm.code_link}
+                  onChange={(e) => setRobotForm({...robotForm, code_link: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-swat-green"
+                  placeholder="https://github.com/team/robot-code"
+                />
+              </div>
+
               <div className="flex gap-3">
                 <button
                   type="submit"
@@ -1723,8 +2094,7 @@ const Maintenance: React.FC = () => {
                           {robot.description && (
                             <div className="mb-2">
                               <p className="text-sm text-gray-700">
-                                <strong>Description:</strong> {robot.description.substring(0, 200)}
-                                {robot.description.length > 200 && '...'}
+                                <strong>Description:</strong> {renderTextWithNewlines(truncateTextWithNewlines(robot.description, 200))}
                               </p>
                             </div>
                           )}
@@ -1732,8 +2102,7 @@ const Maintenance: React.FC = () => {
                           {robot.achievements && (
                             <div className="mb-2">
                               <p className="text-sm text-gray-700">
-                                <strong>Achievements:</strong> {robot.achievements.substring(0, 200)}
-                                {robot.achievements.length > 200 && '...'}
+                                <strong>Achievements:</strong> {renderTextWithNewlines(truncateTextWithNewlines(robot.achievements, 200))}
                               </p>
                             </div>
                           )}
@@ -2042,7 +2411,7 @@ const Maintenance: React.FC = () => {
                       <div>
                         <h5 className="font-medium text-gray-900">{category.name}</h5>
                         {category.description && (
-                          <p className="text-sm text-gray-600">{category.description}</p>
+                          <div className="text-sm text-gray-600">{renderTextWithNewlines(category.description)}</div>
                         )}
                         <p className="text-xs text-gray-500">Order: {category.display_order} | {category.resources?.length || 0} resources</p>
                       </div>
@@ -2184,7 +2553,7 @@ const Maintenance: React.FC = () => {
                             <div className="flex-1">
                               <h5 className="font-medium text-gray-900">{resource.title}</h5>
                               {resource.description && (
-                                <p className="text-sm text-gray-600 mt-1">{resource.description}</p>
+                                <div className="text-sm text-gray-600 mt-1">{renderTextWithNewlines(resource.description)}</div>
                               )}
                               {resource.url && (
                                 <div className="mt-1">
@@ -2223,6 +2592,279 @@ const Maintenance: React.FC = () => {
                   )}
                 </div>
               ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Pages Management Tab */}
+      {activeTab === 'pages' && hasMaintenanceAccess && (
+        <div className="space-y-6">
+          <div className="bg-white rounded-lg border border-gray-200 p-6">
+            <h2 className="text-xl font-impact text-swat-black mb-4">PAGES MANAGEMENT</h2>
+            <p className="text-gray-600 mb-6">
+              {(hasMaintenanceAccess && !isStudent)
+                ? "Create, edit, and manage custom pages for the website. Pages support Markdown formatting and can be published or kept as drafts."
+                : "Propose changes to website pages. Your proposals will be reviewed by mentors or admins before being applied."}
+            </p>
+
+            {/* Image Upload Section */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-8">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Upload Images for Pages</h3>
+              <p className="text-sm text-gray-600 mb-4">
+                Upload images to use in your pages. After uploading, you'll get a Markdown embed code to copy into your page content.
+              </p>
+              
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Choose Image File
+                </label>
+                <input
+                  type="file"
+                  accept="image/jpeg,image/jpg,image/png,image/gif,image/webp,image/svg+xml"
+                  onChange={handlePageImageUpload}
+                  className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-swat-green file:text-white hover:file:bg-swat-green/80"
+                  disabled={imageUploadProgress}
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Supported formats: JPEG, PNG, GIF, WebP, SVG. Max size: 10MB.
+                </p>
+              </div>
+
+              {imageUploadProgress && (
+                <div className="flex items-center text-blue-600 mb-4">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
+                  <span className="text-sm">Uploading image...</span>
+                </div>
+              )}
+
+              {/* Uploaded Images Gallery */}
+              {pageImages.length > 0 && (
+                <div>
+                  <h4 className="text-md font-semibold text-gray-800 mb-3">Uploaded Images</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {pageImages.map((image) => (
+                      <div key={image.filename} className="bg-white border border-gray-200 rounded-lg p-3">
+                        <div className="mb-2">
+                          <img
+                            src={image.web_path}
+                            alt={image.original_name}
+                            className="w-full h-32 object-cover rounded"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.style.display = 'none';
+                            }}
+                          />
+                        </div>
+                        <p className="text-xs text-gray-600 mb-2 truncate" title={image.original_name}>
+                          {image.original_name}
+                        </p>
+                        <p className="text-xs text-gray-500 mb-2">
+                          {(image.size / 1024).toFixed(1)} KB • {new Date(image.uploaded_at).toLocaleDateString()}
+                        </p>
+                        <div className="flex flex-col space-y-2">
+                          <button
+                            onClick={() => copyMarkdownToClipboard(image.markdown)}
+                            className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded hover:bg-green-200"
+                          >
+                            Copy Markdown
+                          </button>
+                          <button
+                            onClick={() => handleDeletePageImage(image.filename)}
+                            className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded hover:bg-red-200"
+                            disabled={loading}
+                          >
+                            Delete
+                          </button>
+                        </div>
+                        <div className="mt-2 p-2 bg-gray-100 rounded text-xs font-mono break-all">
+                          {image.markdown}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Page Form */}
+            <form onSubmit={handlePageSubmit} className="space-y-4 mb-8 bg-gray-50 p-6 rounded-lg">
+              <h3 className="text-lg font-semibold text-gray-900">
+                {(hasMaintenanceAccess && !isStudent)
+                  ? (editingPage ? 'Edit Page' : 'Create New Page')
+                  : (editingPage ? 'Propose Page Update' : 'Propose New Page')}
+              </h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Page Slug *
+                  </label>
+                  <input
+                    type="text"
+                    value={pageForm.slug}
+                    onChange={(e) => setPageForm({...pageForm, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-')})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-swat-green"
+                    placeholder="page-url-slug"
+                    required
+                  />
+                  <p className="text-xs text-gray-500 mt-1">URL-friendly slug (letters, numbers, and hyphens only)</p>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Page Title *
+                  </label>
+                  <input
+                    type="text"
+                    value={pageForm.title}
+                    onChange={(e) => setPageForm({...pageForm, title: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-swat-green"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Page Content (Markdown)
+                </label>
+                <textarea
+                  value={pageForm.content}
+                  onChange={(e) => setPageForm({...pageForm, content: e.target.value})}
+                  rows={12}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-swat-green font-mono"
+                  placeholder="Write your page content in Markdown format...
+
+# Main Heading
+## Subheading
+- List item
+- Another item
+
+[Link text](https://example.com)
+**Bold text** and *italic text*"
+                />
+                <p className="text-xs text-gray-500 mt-1">Supports Markdown formatting. Use ## for headings, ** for bold, * for italic, - for lists, etc.</p>
+              </div>
+
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id="is_published"
+                  checked={pageForm.is_published}
+                  onChange={(e) => setPageForm({...pageForm, is_published: e.target.checked})}
+                  className="h-4 w-4 text-swat-green focus:ring-swat-green border-gray-300 rounded"
+                />
+                <label htmlFor="is_published" className="ml-2 block text-sm text-gray-700">
+                  Publish immediately (visible to all visitors)
+                </label>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="bg-swat-green text-white px-6 py-2 rounded-md hover:bg-swat-green/80 disabled:opacity-50"
+                >
+                  {loading ? 'Saving...' : (
+                    (hasMaintenanceAccess && !isStudent)
+                      ? (editingPage ? 'Update Page' : 'Create Page')
+                      : (editingPage ? 'Propose Update' : 'Propose Page')
+                  )}
+                </button>
+                {editingPage && (
+                  <button
+                    type="button"
+                    onClick={handleCancelPageEdit}
+                    className="bg-gray-500 text-white px-6 py-2 rounded-md hover:bg-gray-600"
+                  >
+                    Cancel
+                  </button>
+                )}
+              </div>
+            </form>
+
+            {/* Existing Pages List */}
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Existing Pages</h3>
+              {pages.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  No pages created yet.
+                </div>
+              ) : (
+                <div className="grid gap-4">
+                  {pages.map((page) => (
+                    <div key={page.id} className="border border-gray-200 rounded-lg p-4">
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <h4 className="text-lg font-semibold text-swat-green">
+                              {page.title}
+                            </h4>
+                            <span className={`px-2 py-1 text-xs rounded-full ${
+                              page.is_published 
+                                ? 'bg-green-100 text-green-800' 
+                                : 'bg-gray-100 text-gray-800'
+                            }`}>
+                              {page.is_published ? 'Published' : 'Draft'}
+                            </span>
+                          </div>
+                          
+                          <p className="text-sm text-gray-600 mb-2">
+                            <strong>Slug:</strong> /{page.slug}
+                          </p>
+                          
+                          {page.content && (
+                            <div className="mb-2">
+                              <p className="text-sm text-gray-700">
+                                <strong>Content Preview:</strong> {page.content.substring(0, 150)}
+                                {page.content.length > 150 && '...'}
+                              </p>
+                            </div>
+                          )}
+                          
+                          <div className="text-xs text-gray-500">
+                            Created: {new Date(page.created_at).toLocaleDateString()} 
+                            {page.created_by_name && ` by ${page.created_by_name}`}
+                            {page.updated_at !== page.created_at && (
+                              <span> • Updated: {new Date(page.updated_at).toLocaleDateString()}
+                                {page.updated_by_name && ` by ${page.updated_by_name}`}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="flex gap-2 ml-4">
+                          {(hasMaintenanceAccess && !isStudent) && (
+                            <button
+                              onClick={() => handleTogglePageStatus(page.id, page.is_published)}
+                              className={`px-3 py-1 rounded text-sm ${
+                                page.is_published 
+                                  ? 'bg-orange-500 text-white hover:bg-orange-600'
+                                  : 'bg-green-500 text-white hover:bg-green-600'
+                              }`}
+                            >
+                              {page.is_published ? 'Unpublish' : 'Publish'}
+                            </button>
+                          )}
+                          <button
+                            onClick={() => handleEditPage(page)}
+                            className="bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600"
+                          >
+                            {(hasMaintenanceAccess && !isStudent) ? 'Edit' : 'Propose Edit'}
+                          </button>
+                          <button
+                            onClick={() => handleDeletePage(page.id)}
+                            className="bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600"
+                          >
+                            {(hasMaintenanceAccess && !isStudent) ? 'Delete' : 'Propose Delete'}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>

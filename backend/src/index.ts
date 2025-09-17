@@ -16,6 +16,7 @@ import maintenanceRoutes from './routes/maintenance';
 import robotsRoutes from './routes/robots';
 import configRoutes from './routes/config';
 import rosterRoutes from './routes/roster';
+import pagesRoutes from './routes/pages';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 import { testConnection, gracefulShutdown } from './utils/database';
 import { AdminInitService } from './services/adminInitService';
@@ -66,6 +67,7 @@ app.use('/api/maintenance', maintenanceRoutes);
 app.use('/api/robots', robotsRoutes);
 app.use('/api/config', configRoutes);
 app.use('/api/roster', rosterRoutes);
+app.use('/api/pages', pagesRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

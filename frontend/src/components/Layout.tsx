@@ -16,6 +16,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [showFirstModal, setShowFirstModal] = useState(false);
   const [contractUrl, setContractUrl] = useState('');
   const [firstSignupUrl, setFirstSignupUrl] = useState('');
+  const [publishedPages, setPublishedPages] = useState<Array<{id: number, slug: string, title: string}>>([]);
 
   const handleLogout = () => {
     logout();
@@ -42,6 +43,21 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     };
 
     loadConfig();
+  }, []);
+
+  // Load published pages for navigation
+  useEffect(() => {
+    const loadPublishedPages = async () => {
+      try {
+        const response = await api.get('/pages/published');
+        setPublishedPages(response.data || []);
+      } catch (error) {
+        console.error('Error loading published pages:', error);
+        // Silently fail - navigation will just not show dynamic pages
+      }
+    };
+
+    loadPublishedPages();
   }, []);
 
   // Check if modals should be shown based on user status
@@ -197,6 +213,18 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 Awards
               </Link>
             </li>
+            {/* Dynamic Pages */}
+            {publishedPages.map((page) => (
+              <li key={page.id}>
+                <Link 
+                  to={`/page/${page.slug}`} 
+                  className="block px-4 py-3 rounded-lg hover:bg-swat-green transition-colors font-medium"
+                  onClick={toggleSidebar}
+                >
+                  {page.title}
+                </Link>
+              </li>
+            ))}
             {/* Roster for all signed-in users */}
             {user && (
               <li>

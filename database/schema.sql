@@ -176,6 +176,8 @@ CREATE TABLE robots (
     description TEXT,
     image_path VARCHAR(500),
     achievements TEXT,
+    cad_link VARCHAR(1000),
+    code_link VARCHAR(1000),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );

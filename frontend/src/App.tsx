@@ -19,6 +19,7 @@ import RosterManagement from './pages/RosterManagement';
 import Roster from './pages/Roster';
 import Unauthorized from './pages/Unauthorized';
 import VerifyEmail from './pages/VerifyEmail';
+import DynamicPage from './pages/DynamicPage';
 import { logHTTPSConfig } from './utils/httpsHelper';
 import './App.css';
 
@@ -92,6 +93,8 @@ function App() {
                 </ProtectedRoute>
               }
             />
+            {/* Dynamic pages - must be last to avoid conflicts with static routes */}
+            <Route path="/page/:slug" element={<DynamicPage />} />
           </Routes>
         </Layout>
       </Router>

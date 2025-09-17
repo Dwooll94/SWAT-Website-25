@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../contexts/AuthContext';
+import { renderTextWithNewlines } from '../utils/textUtils';
 
 interface Robot {
   id: number;
@@ -9,6 +10,8 @@ interface Robot {
   description: string | null;
   image_path: string | null;
   achievements: string | null;
+  cad_link: string | null;
+  code_link: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -144,9 +147,9 @@ const Robots: React.FC = () => {
                           <h4 className="text-lg font-bold text-swat-green mb-2">
                             Robot Description:
                           </h4>
-                          <p className="text-swat-black/80 leading-relaxed">
-                            {robot.description}
-                          </p>
+                          <div className="text-swat-black/80 leading-relaxed">
+                            {renderTextWithNewlines(robot.description)}
+                          </div>
                         </div>
                       )}
 
@@ -155,9 +158,45 @@ const Robots: React.FC = () => {
                           <h4 className="text-lg font-bold text-swat-green mb-2">
                             Achievements & Competition Results:
                           </h4>
-                          <p className="text-swat-black/80 leading-relaxed">
-                            {robot.achievements}
-                          </p>
+                          <div className="text-swat-black/80 leading-relaxed">
+                            {renderTextWithNewlines(robot.achievements)}
+                          </div>
+                        </div>
+                      )}
+
+                      {(robot.cad_link || robot.code_link) && (
+                        <div>
+                          <h4 className="text-lg font-bold text-swat-green mb-2">
+                            Resources:
+                          </h4>
+                          <div className={index %2 === 0? "h-10 w-auto flex-right gap-3" : "h-10 w-auto flex-left gap-3" }>
+                            {robot.cad_link && (
+                              <a
+                                href={robot.cad_link}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold"
+                              >
+                                <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm2 6a2 2 0 104 0 2 2 0 00-4 0zm6 0a2 2 0 104 0 2 2 0 00-4 0z" clipRule="evenodd" />
+                                </svg>
+                                CAD Files
+                              </a>
+                            )}
+                            {robot.code_link && (
+                              <a
+                                href={robot.code_link}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 transition-colors font-semibold"
+                              >
+                                <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M12.316 3.051a1 1 0 01.633 1.265l-4 12a1 1 0 11-1.898-.632l4-12a1 1 0 011.265-.633zM5.707 6.293a1 1 0 010 1.414L3.414 10l2.293 2.293a1 1 0 11-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0zm8.586 0a1 1 0 011.414 0l3 3a1 1 0 010 1.414l-3 3a1 1 0 11-1.414-1.414L16.586 10l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" />
+                                </svg>
+                                Source Code
+                              </a>
+                            )}
+                          </div>
                         </div>
                       )}
 
