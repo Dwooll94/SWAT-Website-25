@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { api } from '../contexts/AuthContext';
 import { renderTextWithNewlines, truncateTextWithNewlines } from '../utils/textUtils';
+import MDEditor from '@uiw/react-md-editor';
+import '@uiw/react-md-editor/markdown-editor.css';
 
 interface SlideshowImage {
   id: number;
@@ -2727,14 +2729,17 @@ const Maintenance: React.FC = () => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Page Content (Markdown)
+                  Page Content (Markdown + HTML)
                 </label>
-                <textarea
-                  value={pageForm.content}
-                  onChange={(e) => setPageForm({...pageForm, content: e.target.value})}
-                  rows={12}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-swat-green font-mono"
-                  placeholder="Write your page content in Markdown format...
+                <div data-color-mode="light">
+                  <MDEditor
+                    value={pageForm.content}
+                    onChange={(value) => setPageForm({...pageForm, content: value || ''})}
+                    preview="edit"
+                    height={400}
+                    visibleDragbar={false}
+                    textareaProps={{
+                      placeholder: `Write your page content in Markdown format with embedded HTML support...
 
 # Main Heading
 ## Subheading
@@ -2742,9 +2747,29 @@ const Maintenance: React.FC = () => {
 - Another item
 
 [Link text](https://example.com)
-**Bold text** and *italic text*"
-                />
-                <p className="text-xs text-gray-500 mt-1">Supports Markdown formatting. Use ## for headings, ** for bold, * for italic, - for lists, etc.</p>
+**Bold text** and *italic text*
+
+<div class="custom-class">
+  <p>You can also embed HTML directly!</p>
+  <button onclick="alert('Hello!')">Click me</button>
+</div>
+
+<iframe src="https://example.com" width="100%" height="300"></iframe>`,
+                      style: { fontSize: 14, fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace' }
+                    }}
+                  />
+                </div>
+                <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                  <p className="text-sm text-blue-800 mb-2"><strong>Enhanced Markdown + HTML Support:</strong></p>
+                  <ul className="text-xs text-blue-700 space-y-1">
+                    <li>• Standard Markdown formatting (headings, lists, links, images, etc.)</li>
+                    <li>• Embedded HTML elements (divs, buttons, iframes, etc.)</li>
+                    <li>• Syntax highlighting for code blocks</li>
+                    <li>• Tables, task lists, and GitHub Flavored Markdown</li>
+                    <li>• Custom CSS classes and inline styles</li>
+                    <li>• Safe HTML sanitization prevents XSS attacks</li>
+                  </ul>
+                </div>
               </div>
 
               <div className="flex items-center">

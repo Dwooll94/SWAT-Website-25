@@ -1,10 +1,13 @@
 import pool from '../config/database';
+import { MarkdownService } from '../services/markdownService';
 
 export interface Page {
   id: number;
   slug: string;
   title: string;
   content?: string;
+  processed_content?: string; // HTML processed from markdown
+  content_preview?: string; // Plain text preview
   is_published: boolean;
   created_at: Date;
   updated_at: Date;
@@ -30,20 +33,29 @@ export interface UpdatePageData {
 
 export class PageModel {
   static async createPage(pageData: CreatePageData, userId: string): Promise<Page> {
+    const content = pageData.content || '';
+    const processedContent = content ? MarkdownService.processMarkdown(content) : '';
+    const contentPreview = content ? MarkdownService.createPreview(content, 200) : '';
+
     const result = await pool.query(
-      `INSERT INTO pages (slug, title, content, is_published, created_by, updated_by)
-       VALUES ($1, $2, $3, $4, $5, $5)
+      `INSERT INTO pages (slug, title, content, processed_content, content_preview, is_published, created_by, updated_by)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $7)
        RETURNING *`,
       [
         pageData.slug,
         pageData.title,
-        pageData.content || '',
+        content,
+        processedContent,
+        contentPreview,
         pageData.is_published || false,
         userId
       ]
     );
 
-    return result.rows[0];
+    const page = result.rows[0];
+    page.processed_content = processedContent;
+    page.content_preview = contentPreview;
+    return page;
   }
 
   static async getAllPages(): Promise<Page[]> {
@@ -108,6 +120,15 @@ export class PageModel {
     const values: any[] = [];
     let paramCount = 1;
 
+    // Check if content is being updated to process markdown
+    let processedContent: string | undefined;
+    let contentPreview: string | undefined;
+    
+    if (pageData.content !== undefined) {
+      processedContent = pageData.content ? MarkdownService.processMarkdown(pageData.content) : '';
+      contentPreview = pageData.content ? MarkdownService.createPreview(pageData.content, 200) : '';
+    }
+
     // Build dynamic update query
     Object.entries(pageData).forEach(([key, value]) => {
       if (value !== undefined) {
@@ -116,6 +137,19 @@ export class PageModel {
         paramCount++;
       }
     });
+
+    // Add processed content if content was updated
+    if (processedContent !== undefined) {
+      updateFields.push(`processed_content = $${paramCount}`);
+      values.push(processedContent);
+      paramCount++;
+    }
+    
+    if (contentPreview !== undefined) {
+      updateFields.push(`content_preview = $${paramCount}`);
+      values.push(contentPreview);
+      paramCount++;
+    }
 
     if (updateFields.length === 0) {
       return this.getPageById(id);
@@ -127,7 +161,14 @@ export class PageModel {
     const query = `UPDATE pages SET ${updateFields.join(', ')} WHERE id = $${paramCount + 1} RETURNING *`;
     
     const result = await pool.query(query, values);
-    return result.rows[0] || null;
+    const page = result.rows[0] || null;
+    
+    if (page && (processedContent !== undefined || contentPreview !== undefined)) {
+      if (processedContent !== undefined) page.processed_content = processedContent;
+      if (contentPreview !== undefined) page.content_preview = contentPreview;
+    }
+    
+    return page;
   }
 
   static async deletePage(id: number): Promise<boolean> {
