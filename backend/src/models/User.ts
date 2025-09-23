@@ -56,7 +56,7 @@ export class UserModel {
         RETURNING *`,
         [
           userData.email,
-          userData.school_email,
+          userData.school_email === '' ? null : userData.school_email,
           hashedPassword,
           userData.graduation_year,
           userData.gender,
@@ -151,9 +151,10 @@ export class UserModel {
 
     // Build dynamic update query based on provided fields
     Object.entries(contactInfo).forEach(([key, value]) => {
-      if (value !== undefined && value !== '') {
+      if (value !== undefined) {
         updateFields.push(`${key} = $${paramCount}`);
-        values.push(value);
+        // Convert empty strings to null for school_email to avoid unique constraint issues
+        values.push(key === 'school_email' && value === '' ? null : value === '' ? null : value);
         paramCount++;
       }
     });

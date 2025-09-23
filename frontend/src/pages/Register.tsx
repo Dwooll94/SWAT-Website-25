@@ -278,6 +278,9 @@ const Register: React.FC = () => {
                   placeholder="@smithville.k12.mo.us"
                   className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                 />
+                <p className="mt-2 text-sm text-blue-600">
+                  <strong>Note:</strong> Smithville R-II School District students are required to enter their school email address.
+                </p>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
