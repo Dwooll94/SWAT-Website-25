@@ -1,15 +1,19 @@
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 import { JSDOM } from 'jsdom';
+import { gfmHeadingId} from 'marked-gfm-heading-id';
+
+const options = {
+	prefix: "swat-",
+};
 
 // Configure marked for better HTML support
 marked.setOptions({
   gfm: true, // GitHub Flavored Markdown
   breaks: true, // Convert line breaks to <br>
-  headerIds: true, // Add id attributes to headings
-  mangle: false, // Don't mangle autolinks
 });
 
+marked.use(gfmHeadingId(options));
 // Create a DOM window for DOMPurify (needed in Node.js environment)
 const window = new JSDOM('').window;
 const purify = DOMPurify(window as any);
@@ -84,7 +88,7 @@ export class MarkdownService {
 
       const sanitizedContent = purify.sanitize(htmlContent, sanitizeConfig);
 
-      return sanitizedContent;
+      return sanitizedContent.toString();
     } catch (error) {
       console.error('Error processing markdown:', error);
       // Return the original content as a fallback, but escaped for safety
