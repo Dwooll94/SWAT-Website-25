@@ -1,7 +1,7 @@
-import { marked } from 'marked';
+import marked from 'marked';
 import DOMPurify from 'dompurify';
 import { JSDOM } from 'jsdom';
-import { gfmHeadingId} from 'marked-gfm-heading-id';
+import { gfmHeadingId } from 'marked-gfm-heading-id';
 
 const options = {
 	prefix: "swat-",
