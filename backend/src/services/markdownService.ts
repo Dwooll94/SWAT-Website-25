@@ -1,4 +1,4 @@
-import marked from 'marked';
+const marked = require("fix-esm").require("marked");
 import DOMPurify from 'dompurify';
 import { JSDOM } from 'jsdom';
 import { gfmHeadingId } from 'marked-gfm-heading-id';
