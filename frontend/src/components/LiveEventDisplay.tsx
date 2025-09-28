@@ -22,6 +22,7 @@ interface EventSummary {
     qual_avg?: number;
     qual_record?: { wins: number; losses: number; ties: number };
     playoff_alliance?: number;
+    playoff_record?: { wins: number; losses: number; ties: number };
     playoff_status?: string;
     overall_status_str?: string;
     opr?: number;
@@ -178,15 +179,64 @@ const LiveEventDisplay: React.FC = () => {
     return `${hours}h ${remainingMinutes}m`;
   };
 
-  const getCompLevelDisplay = (compLevel: string) => {
+  const getCompLevelDisplay = (compLevel: string, matchNumber: number) => {
     const levels: { [key: string]: string } = {
       'qm': 'Quals',
       'ef': 'Eighths',
       'qf': 'Quarters',
-      'sf': 'Semis',
+      'sf': 'Playoff',
       'f': 'Finals'
     };
+    
+    if (compLevel === 'sf') {
+      // For semifinals, show "Playoff #N" where N is the match number
+      return `${levels[compLevel]} #${matchNumber}`;
+    }
+    
     return levels[compLevel] || compLevel.toUpperCase();
+  };
+
+  const getMatchDisplayNumber = (compLevel: string, matchNumber: number) => {
+    // For semifinals, don't show additional match number since it's in the comp level
+    if (compLevel === 'sf') {
+      return '';
+    }
+    // For other matches, show the match number normally
+    return ` ${matchNumber}`;
+  };
+
+  const isEliminationMatch = (compLevel: string) => {
+    return ['ef', 'qf', 'sf', 'f'].includes(compLevel);
+  };
+
+
+  const getActualMatchNumber = (matchKey: string, compLevel: string, matchNumber: number) => {
+    // For semifinals, parse the actual match number from the match key
+    // TBA format: 2025txhou_sf1m1, 2025txhou_sf2m1, etc.
+    if (compLevel === 'sf' && matchKey) {
+      const sfMatch = matchKey.match(/_sf(\d+)m\d+$/);
+      if (sfMatch) {
+        return parseInt(sfMatch[1]);
+      }
+    }
+    
+    // For other elimination matches, might need similar parsing
+    if (compLevel === 'qf' && matchKey) {
+      const qfMatch = matchKey.match(/_qf(\d+)m\d+$/);
+      if (qfMatch) {
+        return parseInt(qfMatch[1]);
+      }
+    }
+    
+    if (compLevel === 'ef' && matchKey) {
+      const efMatch = matchKey.match(/_ef(\d+)m\d+$/);
+      if (efMatch) {
+        return parseInt(efMatch[1]);
+      }
+    }
+    
+    // Fall back to the provided match number for quals and other formats
+    return matchNumber;
   };
 
   const getAllianceColor = (teamKey: string, match: EventMatch) => {
@@ -328,6 +378,15 @@ const LiveEventDisplay: React.FC = () => {
               <span className="text-purple-400 font-mono">{teamStatus.qual_avg.toFixed(1)}</span>
             </div>
           )}
+          {teamStatus.overall_status_str && (
+            <div className="mb-2">
+              <span className="text-gray-300">Status: </span>
+              <span 
+                className="text-swat-green font-semibold"
+                dangerouslySetInnerHTML={{ __html: teamStatus.overall_status_str }}
+              />
+            </div>
+          )}
         </div>
 
         {/* Next Match */}
@@ -336,7 +395,10 @@ const LiveEventDisplay: React.FC = () => {
             <h3 className="text-lg font-bold text-swat-green mb-3">Next Match</h3>
             <div className="mb-2">
               <span className="text-xl font-bold">
-                {getCompLevelDisplay(nextMatch.comp_level)} {nextMatch.match_number}
+                {(() => {
+                  const actualMatchNum = getActualMatchNumber(nextMatch.match_key, nextMatch.comp_level, nextMatch.match_number);
+                  return getCompLevelDisplay(nextMatch.comp_level, actualMatchNum) + getMatchDisplayNumber(nextMatch.comp_level, actualMatchNum);
+                })()}
               </span>
             </div>
             <div className="mb-2">
@@ -378,7 +440,10 @@ const LiveEventDisplay: React.FC = () => {
             <h3 className="text-lg font-bold text-swat-green mb-3">Last Match</h3>
             <div className="mb-2">
               <span className="text-xl font-bold">
-                {getCompLevelDisplay(lastMatch.comp_level)} {lastMatch.match_number}
+                {(() => {
+                  const actualMatchNum = getActualMatchNumber(lastMatch.match_key, lastMatch.comp_level, lastMatch.match_number);
+                  return getCompLevelDisplay(lastMatch.comp_level, actualMatchNum) + getMatchDisplayNumber(lastMatch.comp_level, actualMatchNum);
+                })()}
               </span>
             </div>
             <div className="space-y-1 text-sm mb-3">
@@ -401,7 +466,7 @@ const LiveEventDisplay: React.FC = () => {
                 </span>
               </div>
             </div>
-            {lastMatch.score_breakdown && (
+            {lastMatch.score_breakdown && !isEliminationMatch(lastMatch.comp_level) && (
               <div className="text-xs text-gray-400">
                 {(() => {
                   const teamRP = getTeamRankingPoints(
@@ -452,6 +517,20 @@ const LiveEventDisplay: React.FC = () => {
                 })()}
               </div>
             )}
+            {isEliminationMatch(lastMatch.comp_level) && (
+              <div className="text-xs text-gray-400">
+                <div>
+                  <span>Result: </span>
+                  <span className={`font-bold ${
+                    lastMatch.winning_alliance === (lastMatch.red_alliance.team_keys?.includes(eventSummary.teamKey) ? 'red' : 'blue')
+                      ? 'text-green-400' : 'text-red-400'
+                  }`}>
+                    {lastMatch.winning_alliance === (lastMatch.red_alliance.team_keys?.includes(eventSummary.teamKey) ? 'red' : 'blue')
+                      ? 'Win' : 'Loss'}
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -484,7 +563,10 @@ const LiveEventDisplay: React.FC = () => {
                 >
                   <div>
                     <span className="font-bold">
-                      {getCompLevelDisplay(match.comp_level)} {match.match_number} 
+                      {(() => {
+                        const actualMatchNum = getActualMatchNumber(match.match_key, match.comp_level, match.match_number);
+                        return getCompLevelDisplay(match.comp_level, actualMatchNum) + getMatchDisplayNumber(match.comp_level, actualMatchNum);
+                      })()}
                     </span>
                     <div className="text-sm text-gray-400">
                       {formatTime(match.predicted_time || match.time)}
@@ -498,7 +580,7 @@ const LiveEventDisplay: React.FC = () => {
                         {match.winning_alliance && winner ? "W" : "L"} {match.red_alliance.score} - {match.blue_alliance.score}
                       </div>
                     )}
-                    {match.score_breakdown && allianceColor && (
+                    {match.score_breakdown && allianceColor && !isEliminationMatch(match.comp_level) && (
                       <div className="text-xs text-gray-400">
                         {(() => {
                           const teamRP = getTeamRankingPoints(
