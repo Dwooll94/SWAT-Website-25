@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth, api } from '../contexts/AuthContext';
 import ResponsiveSlideshow from '../components/ResponsiveSlideshow';
 import SponsorSlideshow from '../components/SponsorSlideshow';
+import MarkdownRenderer from '../components/MarkdownRenderer';
 import moment from 'moment';
 
 interface Subteam {
@@ -14,10 +15,23 @@ interface Subteam {
   is_active: boolean;
 }
 
+interface PageData {
+  id: number;
+  slug: string;
+  title: string;
+  content: string;
+  processed_content?: string;
+  is_published: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 const Home: React.FC = () => {
   const { user } = useAuth();
   const [teamMotto, setTeamMotto] = useState('Building Tomorrow\'s Leaders Today');
   const [subteams, setSubteams] = useState<Subteam[]>([]);
+  const [dynamicHomePage, setDynamicHomePage] = useState<PageData | null>(null);
+  const [loadingHomePage, setLoadingHomePage] = useState(true);
 
   useEffect(() => {
     const loadConfiguration = async () => {
@@ -42,8 +56,21 @@ const Home: React.FC = () => {
       }
     };
 
+    const loadDynamicHomePage = async () => {
+      try {
+        const response = await api.get('/pages/slug/home');
+        setDynamicHomePage(response.data);
+      } catch (error) {
+        console.error('No dynamic home page found:', error);
+        // No dynamic page available
+      } finally {
+        setLoadingHomePage(false);
+      }
+    };
+
     loadConfiguration();
     loadSubteams();
+    loadDynamicHomePage();
   }, []);
 
   return (
@@ -79,6 +106,31 @@ const Home: React.FC = () => {
 
       {/* Sponsor Slideshow */}
       <SponsorSlideshow />
+      
+      {/* Dynamic Home Page Content */}
+      {!loadingHomePage && dynamicHomePage && (
+        <div className="py-16 bg-white">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
+              <div className="prose max-w-none">
+                {dynamicHomePage.processed_content ? (
+                  <MarkdownRenderer 
+                    content={dynamicHomePage.processed_content} 
+                    useProcessedContent={true}
+                    allowUnsafeHtml={false}
+                  />
+                ) : (
+                  <MarkdownRenderer 
+                    content={dynamicHomePage.content} 
+                    allowUnsafeHtml={false}
+                  />
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
       <div className="mb-6 flex items-center justify-center">
               <img 
                 src="https://usfirststg.prod.acquia-sites.com/sites/default/files/2024-banner/first_age_frc_rebuilt_logoanimation_gif_800x800%20(1).gif"

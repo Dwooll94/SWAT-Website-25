@@ -1,8 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../contexts/AuthContext';
+import MarkdownRenderer from '../components/MarkdownRenderer';
+
+interface PageData {
+  id: number;
+  slug: string;
+  title: string;
+  content: string;
+  processed_content?: string;
+  is_published: boolean;
+  created_at: string;
+  updated_at: string;
+}
 
 const About: React.FC = () => {
   const [teamMotto, setTeamMotto] = useState('Building Tomorrow\'s Leaders Today');
+  const [dynamicPage, setDynamicPage] = useState<PageData | null>(null);
+  const [loadingPage, setLoadingPage] = useState(true);
 
   useEffect(() => {
     const loadConfiguration = async () => {
@@ -17,8 +31,67 @@ const About: React.FC = () => {
       }
     };
 
+    const loadDynamicPage = async () => {
+      try {
+        const response = await api.get('/pages/slug/about');
+        setDynamicPage(response.data);
+      } catch (error) {
+        console.error('No dynamic about page found:', error);
+        // No dynamic page available, use static content
+      } finally {
+        setLoadingPage(false);
+      }
+    };
+
     loadConfiguration();
+    loadDynamicPage();
   }, []);
+
+  if (loadingPage) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-swat-green mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading about page...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (dynamicPage) {
+    return (
+      <div className="min-h-screen bg-white">
+        <div className="max-w-6xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+
+          {/* Content Area with SWAT Styling */}
+          <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
+            <div className="prose max-w-none">
+              {dynamicPage.processed_content ? (
+                <MarkdownRenderer 
+                  content={dynamicPage.processed_content} 
+                  useProcessedContent={true}
+                  allowUnsafeHtml={false}
+                />
+              ) : (
+                <MarkdownRenderer 
+                  content={dynamicPage.content} 
+                  allowUnsafeHtml={false}
+                />
+              )}
+            </div>
+          </div>
+
+          {/* Footer with Team Branding */}
+          <div className="mt-8 text-center">
+            <div className="inline-flex items-center space-x-2 text-sm text-gray-500">
+              <span>🤖</span>
+              <span>SWAT Team 1806 - Smithville Warriors Advancing Technology</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white">
