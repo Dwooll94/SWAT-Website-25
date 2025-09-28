@@ -225,6 +225,7 @@ export class EventModel {
         WHEN 'f' THEN 5 
         ELSE 6 
       END, 
+      COALESCE(set_number, 1), 
       match_number`;
     const result = await pool.query(query, params);
     return result.rows;
@@ -244,6 +245,7 @@ export class EventModel {
           WHEN 'f' THEN 5 
           ELSE 6 
         END, 
+        COALESCE(set_number, 1), 
         match_number LIMIT 1
     `;
     const result = await pool.query(query, [eventKey, teamKey]);
@@ -264,6 +266,7 @@ export class EventModel {
           WHEN 'f' THEN 5 
           ELSE 6 
         END DESC, 
+        COALESCE(set_number, 1) DESC, 
         match_number DESC LIMIT 1
     `;
     const result = await pool.query(query, [eventKey, teamKey]);
