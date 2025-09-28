@@ -22,6 +22,7 @@ import VerifyEmail from './pages/VerifyEmail';
 import DynamicPage from './pages/DynamicPage';
 import { logHTTPSConfig } from './utils/httpsHelper';
 import './App.css';
+import LiveEventDisplay from './components/LiveEventDisplay';
 
 function App() {
   document.title = "S.W.A.T. 1806";
@@ -33,6 +34,9 @@ function App() {
   return (
     <AuthProvider>
       <Router>
+        <Routes>
+          <Route path="/live" element={<LiveEventDisplay />} />
+        </Routes>
         <Layout>
           <Routes>
             <Route path="/" element={<Home />} />

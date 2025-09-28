@@ -3,12 +3,13 @@ import { useAuth } from '../contexts/AuthContext';
 import InviteMentorModal from '../components/InviteMentorModal';
 import UserManagement from '../components/UserManagement';
 import SiteConfiguration from '../components/SiteConfiguration';
+import EventConfiguration from '../components/EventConfiguration';
 
 const Admin: React.FC = () => {
   const { user } = useAuth();
   const [showInviteMentorModal, setShowInviteMentorModal] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
-  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'config'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'config' | 'events'>('overview');
 
   const handleMentorInviteSuccess = () => {
     setSuccessMessage('Mentor invitation sent successfully!');
@@ -70,16 +71,28 @@ const Admin: React.FC = () => {
               User Management
             </button>
             {user?.role === 'admin' && (
-              <button
-                onClick={() => setActiveTab('config')}
-                className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-                  activeTab === 'config'
-                    ? 'border-swat-green text-swat-green'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                Site Configuration
-              </button>
+              <>
+                <button
+                  onClick={() => setActiveTab('config')}
+                  className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                    activeTab === 'config'
+                      ? 'border-swat-green text-swat-green'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  Site Configuration
+                </button>
+                <button
+                  onClick={() => setActiveTab('events')}
+                  className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                    activeTab === 'events'
+                      ? 'border-swat-green text-swat-green'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  Event Configuration
+                </button>
+              </>
             )}
           </nav>
         </div>
@@ -123,6 +136,24 @@ const Admin: React.FC = () => {
                   Manage Users
                 </button>
               </div>
+
+              {user?.role === 'admin' && (
+                <div className="bg-white p-4 rounded border">
+                  <h3 className="font-medium text-gray-900 mb-2">Live Event System</h3>
+                  <p className="text-sm text-gray-600 mb-4">
+                    Configure The Blue Alliance integration for live event displays during FRC competitions.
+                  </p>
+                  <button
+                    onClick={() => setActiveTab('events')}
+                    className="bg-swat-green hover:bg-swat-green-dark text-white px-4 py-2 rounded-md font-medium transition-colors flex items-center"
+                  >
+                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                    Configure Events
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 
@@ -157,6 +188,14 @@ const Admin: React.FC = () => {
                   >
                     → Manage Resources
                   </button>
+                  {user?.role === 'admin' && (
+                    <button
+                      className="block w-full text-left text-sm text-swat-green hover:text-swat-green-dark transition-colors"
+                      onClick={() => setActiveTab('events')}
+                    >
+                      → Configure Live Events
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -189,6 +228,11 @@ const Admin: React.FC = () => {
         {/* Site Configuration Tab */}
         {activeTab === 'config' && user?.role === 'admin' && (
           <SiteConfiguration />
+        )}
+
+        {/* Event Configuration Tab */}
+        {activeTab === 'events' && user?.role === 'admin' && (
+          <EventConfiguration />
         )}
       </div>
 

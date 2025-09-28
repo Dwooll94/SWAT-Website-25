@@ -17,9 +17,11 @@ import robotsRoutes from './routes/robots';
 import configRoutes from './routes/config';
 import rosterRoutes from './routes/roster';
 import pagesRoutes from './routes/pages';
+import eventsRoutes from './routes/events';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 import { testConnection, gracefulShutdown } from './utils/database';
 import { AdminInitService } from './services/adminInitService';
+import eventScheduler from './services/eventScheduler';
 
 dotenv.config();
 
@@ -68,6 +70,7 @@ app.use('/api/robots', robotsRoutes);
 app.use('/api/config', configRoutes);
 app.use('/api/roster', rosterRoutes);
 app.use('/api/pages', pagesRoutes);
+app.use('/api/events', eventsRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);
@@ -86,6 +89,9 @@ const startServer = async () => {
     
     console.log('👤 Checking admin account initialization...');
     await AdminInitService.checkAndInitializeAdmin();
+
+    console.log('📅 Starting event scheduler...');
+    await eventScheduler.start();
 
     // Check for HTTPS configuration
     const sslKeyPath = process.env.SSL_KEY_PATH;
@@ -124,12 +130,14 @@ const startServer = async () => {
 
 process.on('SIGTERM', async () => {
   console.log('SIGTERM received. Shutting down gracefully...');
+  eventScheduler.stop();
   await gracefulShutdown();
   process.exit(0);
 });
 
 process.on('SIGINT', async () => {
   console.log('SIGINT received. Shutting down gracefully...');
+  eventScheduler.stop();
   await gracefulShutdown();
   process.exit(0);
 });

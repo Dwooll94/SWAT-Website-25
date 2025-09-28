@@ -4,6 +4,7 @@ import { useAuth, api } from '../contexts/AuthContext';
 import ResponsiveSlideshow from '../components/ResponsiveSlideshow';
 import SponsorSlideshow from '../components/SponsorSlideshow';
 import MarkdownRenderer from '../components/MarkdownRenderer';
+import LiveEventDisplay from '../components/LiveEventDisplay';
 import moment from 'moment';
 
 interface Subteam {
@@ -75,6 +76,10 @@ const Home: React.FC = () => {
 
   return (
     <div className="bg-white">
+      {/* Live Event Display */}
+      <div className="w-full">
+        <LiveEventDisplay />
+      </div>
       {/* Hero Section with Slideshow */}
       <div className="relative overflow-hidden bg-swat-gradient">
         <div className="max-w-7xl mx-auto px-4 py-12">
