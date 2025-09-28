@@ -23,6 +23,7 @@ import DynamicPage from './pages/DynamicPage';
 import { logHTTPSConfig } from './utils/httpsHelper';
 import './App.css';
 import LiveEventDisplay from './components/LiveEventDisplay';
+import PitDisplay from './components/PitDisplay';
 
 function App() {
   document.title = "S.W.A.T. 1806";
@@ -36,6 +37,7 @@ function App() {
       <Router>
         <Routes>
           <Route path="/live" element={<LiveEventDisplay />} />
+          <Route path="/pit" element={<PitDisplay />} />
         </Routes>
         <Layout>
           <Routes>
