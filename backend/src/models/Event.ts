@@ -215,7 +215,17 @@ export class EventModel {
       params.push(teamKey);
     }
     
-    query += ' ORDER BY comp_level, match_number';
+    // Order by logical progression: quals first, then eliminations in order
+    query += ` ORDER BY 
+      CASE comp_level 
+        WHEN 'qm' THEN 1 
+        WHEN 'ef' THEN 2 
+        WHEN 'qf' THEN 3 
+        WHEN 'sf' THEN 4 
+        WHEN 'f' THEN 5 
+        ELSE 6 
+      END, 
+      match_number`;
     const result = await pool.query(query, params);
     return result.rows;
   }
@@ -225,7 +235,16 @@ export class EventModel {
       SELECT * FROM event_matches 
       WHERE event_key = $1 AND (red_alliance->'team_keys' ? $2 OR blue_alliance->'team_keys' ? $2)
       AND (time > EXTRACT(epoch FROM NOW()) OR time IS NULL OR ((red_score = -1 AND blue_score = -1)))
-      ORDER BY comp_level, match_number LIMIT 1
+      ORDER BY 
+        CASE comp_level 
+          WHEN 'qm' THEN 1 
+          WHEN 'ef' THEN 2 
+          WHEN 'qf' THEN 3 
+          WHEN 'sf' THEN 4 
+          WHEN 'f' THEN 5 
+          ELSE 6 
+        END, 
+        match_number LIMIT 1
     `;
     const result = await pool.query(query, [eventKey, teamKey]);
     return result.rows[0] || null;
@@ -236,7 +255,16 @@ export class EventModel {
       SELECT * FROM event_matches 
       WHERE event_key = $1 AND (red_alliance->'team_keys' ? $2 OR blue_alliance->'team_keys' ? $2)
       AND (post_result_time IS NOT NULL OR (red_score > -1 AND blue_score > -1))
-      ORDER BY comp_level DESC, match_number DESC LIMIT 1
+      ORDER BY 
+        CASE comp_level 
+          WHEN 'qm' THEN 1 
+          WHEN 'ef' THEN 2 
+          WHEN 'qf' THEN 3 
+          WHEN 'sf' THEN 4 
+          WHEN 'f' THEN 5 
+          ELSE 6 
+        END DESC, 
+        match_number DESC LIMIT 1
     `;
     const result = await pool.query(query, [eventKey, teamKey]);
     return result.rows[0] || null;
