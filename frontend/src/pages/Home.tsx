@@ -131,16 +131,19 @@ const Home: React.FC = () => {
         </div>
       )}
       
-      <div className="mb-6 flex items-center justify-center">
-              <img 
-                src="https://usfirststg.prod.acquia-sites.com/sites/default/files/2024-banner/first_age_frc_rebuilt_logoanimation_gif_800x800%20(1).gif"
-                alt="FRC 2026 Rebuilt Game Logo"
-                className="h-128 w-auto"
-              />
-            </div>
-            <p className="text-lg mb-8">
-              Join us for the 2025-2026 FRC season as we compete in <strong className="text-swat-green">REBUILT</strong>
-            </p>
+      {/* Only show default content if no dynamic home page is available */}
+      {!loadingHomePage && !dynamicHomePage && (
+        <>
+          <div className="mb-6 flex items-center justify-center">
+                <img 
+                  src="https://usfirststg.prod.acquia-sites.com/sites/default/files/2024-banner/first_age_frc_rebuilt_logoanimation_gif_800x800%20(1).gif"
+                  alt="FRC 2026 Rebuilt Game Logo"
+                  className="h-128 w-auto"
+                />
+              </div>
+              <p className="text-lg mb-8">
+                Join us for the 2025-2026 FRC season as we compete in <strong className="text-swat-green">REBUILT</strong>
+              </p>
       <div className="py-16">
         <div className="max-w-7xl mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 text-center">
@@ -214,6 +217,8 @@ const Home: React.FC = () => {
           )}
         </div>
       </div>
+        </>
+      )}
     </div>
   );
 };

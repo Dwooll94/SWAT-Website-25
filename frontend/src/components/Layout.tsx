@@ -214,7 +214,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               </Link>
             </li>
             {/* Dynamic Pages */}
-            {publishedPages.map((page) => (
+            {publishedPages
+              .filter((page) => page.slug !== 'home' && page.slug !== 'about')
+              .map((page) => (
               <li key={page.id}>
                 <Link 
                   to={`/page/${page.slug}`} 

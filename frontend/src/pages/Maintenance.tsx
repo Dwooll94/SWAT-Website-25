@@ -193,6 +193,8 @@ const Maintenance: React.FC = () => {
   });
   const [pageImages, setPageImages] = useState<PageImage[]>([]);
   const [imageUploadProgress, setImageUploadProgress] = useState(false);
+  const [previewPage, setPreviewPage] = useState<Page | null>(null);
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
 
   const hasMaintenanceAccess = user?.maintenance_access;
   const isStudent = user?.role === 'student';
@@ -661,6 +663,16 @@ const Maintenance: React.FC = () => {
       is_published: page.is_published
     });
     setEditingPage(page);
+  };
+
+  const handlePreviewPage = (page: Page) => {
+    setPreviewPage(page);
+    setShowPreviewModal(true);
+  };
+
+  const handleClosePreview = () => {
+    setShowPreviewModal(false);
+    setPreviewPage(null);
   };
 
   const handleDeletePage = async (pageId: number) => {
@@ -2873,6 +2885,12 @@ const Maintenance: React.FC = () => {
                             </button>
                           )}
                           <button
+                            onClick={() => handlePreviewPage(page)}
+                            className="bg-purple-500 text-white px-3 py-1 rounded text-sm hover:bg-purple-600"
+                          >
+                            Preview
+                          </button>
+                          <button
                             onClick={() => handleEditPage(page)}
                             className="bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600"
                           >
@@ -3068,6 +3086,53 @@ const Maintenance: React.FC = () => {
               {subteams.filter(s => s.is_active).length === 0 && (
                 <p className="text-gray-500 text-center py-4">No subteams configured yet.</p>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Page Preview Modal */}
+      {showPreviewModal && previewPage && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden">
+            <div className="flex justify-between items-center p-6 border-b border-gray-200">
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900">Preview: {previewPage.title}</h2>
+                <p className="text-sm text-gray-500 mt-1">/{previewPage.slug}</p>
+              </div>
+              <button
+                onClick={handleClosePreview}
+                className="text-gray-400 hover:text-gray-600 text-xl"
+              >
+                ×
+              </button>
+            </div>
+            
+            <div className="p-6 overflow-auto max-h-[calc(90vh-8rem)]">
+              <div data-color-mode="light" className="prose prose-lg max-w-none">
+                <MDEditor.Markdown 
+                  source={previewPage.content || 'No content'} 
+                  style={{ whiteSpace: 'pre-wrap' }}
+                />
+              </div>
+            </div>
+            
+            <div className="flex justify-end gap-3 p-6 border-t border-gray-200 bg-gray-50">
+              <button
+                onClick={handleClosePreview}
+                className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
+              >
+                Close
+              </button>
+              <button
+                onClick={() => {
+                  handleEditPage(previewPage);
+                  handleClosePreview();
+                }}
+                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+              >
+                Edit Page
+              </button>
             </div>
           </div>
         </div>
