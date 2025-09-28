@@ -88,6 +88,8 @@ const LiveEventDisplay: React.FC = () => {
   const [showSchedule, setShowSchedule] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [streamVisible, setStreamVisible] = useState(false);
+  const streamContainerRef = React.useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchEventData();
@@ -96,6 +98,35 @@ const LiveEventDisplay: React.FC = () => {
     const interval = setInterval(fetchEventData, 30000);
     return () => clearInterval(interval);
   }, []);
+
+  // Intersection observer to detect when stream container is visible
+  useEffect(() => {
+    if (!streamContainerRef.current) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            // Add a small delay to ensure the container is fully loaded
+            setTimeout(() => {
+              setStreamVisible(true);
+            }, 500);
+          }
+        });
+      },
+      {
+        root: null,
+        rootMargin: '0px',
+        threshold: 0.5 // Trigger when 50% of the element is visible
+      }
+    );
+
+    observer.observe(streamContainerRef.current);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [eventSummary]); // Re-run when eventSummary changes
 
   const fetchEventData = async () => {
     try {
@@ -221,10 +252,18 @@ const LiveEventDisplay: React.FC = () => {
 
       {/* Stream Embed */}
       {event.webcasts && event.webcasts.length > 0 && (
-        <div className="mb-6">
+        <div className="mb-6" ref={streamContainerRef}>
           <div className="aspect-video bg-gray-800 rounded-lg overflow-hidden">
-            {event.webcasts[0].type === 'twitch' ? (
+            {!streamVisible ? (
+              <div className="flex items-center justify-center h-full text-gray-400">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-swat-green mx-auto mb-2"></div>
+                  <div>Loading stream...</div>
+                </div>
+              </div>
+            ) : event.webcasts[0].type === 'twitch' ? (
               <iframe
+                key={`twitch-${streamVisible}`} // Force re-render when visible
                 src={`https://player.twitch.tv/?channel=${event.webcasts[0].channel}&parent=${window.location.hostname}&parent=localhost&autoplay=true&muted=false`}
                 width="100%"
                 height="100%"
@@ -234,6 +273,7 @@ const LiveEventDisplay: React.FC = () => {
               />
             ) : event.webcasts[0].type === 'youtube' ? (
               <iframe
+                key={`youtube-${streamVisible}`} // Force re-render when visible
                 src={`https://www.youtube.com/embed/${event.webcasts[0].channel}?autoplay=1&mute=0&controls=1&rel=0&modestbranding=1`}
                 width="100%"
                 height="100%"
