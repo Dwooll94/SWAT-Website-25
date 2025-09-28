@@ -225,18 +225,20 @@ const LiveEventDisplay: React.FC = () => {
           <div className="aspect-video bg-gray-800 rounded-lg overflow-hidden">
             {event.webcasts[0].type === 'twitch' ? (
               <iframe
-                src={`https://player.twitch.tv/?channel=${event.webcasts[0].channel}&parent=${window.location.hostname}`}
+                src={`https://player.twitch.tv/?channel=${event.webcasts[0].channel}&parent=${window.location.hostname}&parent=localhost&autoplay=true&muted=false`}
                 width="100%"
                 height="100%"
                 allowFullScreen
+                allow="autoplay; fullscreen; picture-in-picture"
                 className="border-0"
               />
             ) : event.webcasts[0].type === 'youtube' ? (
               <iframe
-                src={`https://www.youtube.com/embed/${event.webcasts[0].channel}?autoplay=1`}
+                src={`https://www.youtube.com/embed/${event.webcasts[0].channel}?autoplay=1&mute=0&controls=1&rel=0&modestbranding=1`}
                 width="100%"
                 height="100%"
                 allowFullScreen
+                allow="autoplay; fullscreen; picture-in-picture"
                 className="border-0"
               />
             ) : (
