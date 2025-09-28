@@ -235,7 +235,7 @@ export class EventModel {
     const query = `
       SELECT * FROM event_matches 
       WHERE event_key = $1 AND (red_alliance->'team_keys' ? $2 OR blue_alliance->'team_keys' ? $2)
-      AND (post_result_time IS NOT NULL OR (red_score IS NOT NULL AND blue_score IS NOT NULL))
+      AND (post_result_time IS NOT NULL OR (red_score > -1 AND blue_score > -1))
       ORDER BY comp_level DESC, match_number DESC LIMIT 1
     `;
     const result = await pool.query(query, [eventKey, teamKey]);
