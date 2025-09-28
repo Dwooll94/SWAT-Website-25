@@ -38,11 +38,13 @@ export function extractRankingPoints(scoreBreakdown: any, year: number): Ranking
       
       result.redRPBreakdown = {
         'Barge Bonus': red.bargeBonusAchieved || false,
-        'Coral Bonus': red.coralBonusAchieved || false
+        'Coral Bonus': red.coralBonusAchieved || false,
+        'Auto Bonus' : red.autoBonusAchieved || false
       };
       result.blueRPBreakdown = {
         'Barge Bonus': blue.bargeBonusAchieved || false,
-        'Coral Bonus': blue.coralBonusAchieved || false
+        'Coral Bonus': blue.coralBonusAchieved || false,
+        'Auto Bonus' : blue.autoBonusAchieved || false
       };
       break;
 
