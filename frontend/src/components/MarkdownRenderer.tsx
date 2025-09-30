@@ -51,8 +51,8 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
   // If we're using pre-processed content from the backend, render it directly
   if (useProcessedContent) {
     return (
-      <div 
-        className={`markdown-content prose prose-lg max-w-none ${className}`}
+      <div
+        className={`prose prose-lg max-w-none ${className}`}
         dangerouslySetInnerHTML={{ __html: content }}
       />
     );
