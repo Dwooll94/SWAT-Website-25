@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../contexts/AuthContext';
+import SEO from '../components/SEO';
+import { redirectBotIfNeeded } from '../utils/botDetection';
 
 interface Sponsor {
   id: number;
@@ -18,6 +20,9 @@ const Sponsors: React.FC = () => {
   const [error, setError] = useState('');
 
   useEffect(() => {
+    // Redirect bots to pre-rendered version
+    redirectBotIfNeeded('sponsors');
+
     const fetchSponsors = async () => {
       try {
         const response = await api.get('/sponsors');
@@ -127,6 +132,11 @@ const Sponsors: React.FC = () => {
 
   return (
     <div className="bg-white py-12">
+      <SEO
+        title="Sponsors"
+        description="Meet the gracious sponsors supporting SWAT Team 1806. These amazing organizations and individuals make our FIRST Robotics Competition team possible through their generous support."
+        keywords="SWAT 1806 sponsors, FRC sponsors, robotics team sponsors, Smithville robotics sponsors, FIRST sponsors, team partners, gracious professionalism, community support"
+      />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
           <h1 className="text-4xl font-extrabold text-gray-900 mb-4">

@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../contexts/AuthContext';
 import { renderTextWithNewlines } from '../utils/textUtils';
+import SEO from '../components/SEO';
+import { redirectBotIfNeeded } from '../utils/botDetection';
 
 interface Resource {
   id: number;
@@ -28,6 +30,9 @@ const Resources: React.FC = () => {
   const [error, setError] = useState('');
 
   useEffect(() => {
+    // Redirect bots to pre-rendered version
+    redirectBotIfNeeded('resources');
+
     const fetchResources = async () => {
       try {
         const response = await api.get('/resources');
@@ -267,6 +272,11 @@ const Resources: React.FC = () => {
 
   return (
     <div className="bg-white py-12">
+      <SEO
+        title="Resources"
+        description="Essential tools, documentation, and learning materials for FIRST Robotics Competition. CAD resources, programming guides, training materials, and technical documentation for FRC teams."
+        keywords="FRC resources, robotics resources, WPILib, CAD resources, programming guides, FRC training, robotics documentation, FIRST resources, engineering tools, robot design"
+      />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
           <h1 className="text-4xl font-impact swat-title text-swat-black mb-4">

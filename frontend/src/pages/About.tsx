@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../contexts/AuthContext';
 import MarkdownRenderer from '../components/MarkdownRenderer';
+import SEO from '../components/SEO';
+import { redirectBotIfNeeded } from '../utils/botDetection';
 
 interface PageData {
   id: number;
@@ -19,6 +21,9 @@ const About: React.FC = () => {
   const [loadingPage, setLoadingPage] = useState(true);
 
   useEffect(() => {
+    // Redirect bots to pre-rendered version
+    redirectBotIfNeeded('about');
+
     const loadConfiguration = async () => {
       try {
         const response = await api.get('/config');
@@ -61,6 +66,11 @@ const About: React.FC = () => {
   if (dynamicPage) {
     return (
       <div className="min-h-screen bg-white">
+        <SEO
+          title="About"
+          description="Learn about SWAT Team 1806, Smithville Warriors Advancing Technology. Our mission, history, and commitment to inspiring young people in STEM through FIRST Robotics Competition."
+          keywords="SWAT 1806 about, Team 1806 history, FRC team Missouri, Smithville robotics history, FIRST mission, STEM education, robotics team mission, coopertition, gracious professionalism"
+        />
         <div className="max-w-6xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
 
           {/* Content Area with SWAT Styling */}
@@ -95,6 +105,11 @@ const About: React.FC = () => {
 
   return (
     <div className="bg-white">
+      <SEO
+        title="About"
+        description="Learn about SWAT Team 1806, Smithville Warriors Advancing Technology. Our mission, history, and commitment to inspiring young people in STEM through FIRST Robotics Competition."
+        keywords="SWAT 1806 about, Team 1806 history, FRC team Missouri, Smithville robotics history, FIRST mission, STEM education, robotics team mission, coopertition, gracious professionalism"
+      />
       <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
         <div className="text-center">
           <h1 className="text-4xl font-extrabold text-gray-900 mb-8">

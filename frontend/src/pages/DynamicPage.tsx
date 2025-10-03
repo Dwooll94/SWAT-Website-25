@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Navigate } from 'react-router-dom';
 import { api } from '../contexts/AuthContext';
 import MarkdownRenderer from '../components/MarkdownRenderer';
+import SEO from '../components/SEO';
+import { redirectBotIfNeeded } from '../utils/botDetection';
 
 interface PageData {
   id: number;
@@ -29,6 +31,9 @@ const DynamicPage: React.FC = () => {
         setLoading(false);
         return;
       }
+
+      // Redirect bots to pre-rendered version using the slug
+      redirectBotIfNeeded(slug);
 
       try {
         setLoading(true);
@@ -88,8 +93,20 @@ const DynamicPage: React.FC = () => {
     return <Navigate to="/404" replace />;
   }
 
+  // Generate SEO description from content preview or content
+  const seoDescription = page.content_preview
+    ? page.content_preview
+    : page.content
+      ? page.content.substring(0, 155).replace(/[#*_\[\]]/g, '').trim() + '...'
+      : `${page.title} - SWAT Team 1806, Smithville Warriors Advancing Technology`;
+
   return (
     <div className="min-h-screen bg-white">
+      <SEO
+        title={page.title}
+        description={seoDescription}
+        keywords={`SWAT 1806, ${page.title}, FRC robotics, Smithville robotics, FIRST Robotics Competition, ${page.slug}`}
+      />
       <div className="max-w-6xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         {/* Page Header with SWAT Branding */}
         <div className="text-center mb-12 bg-gradient-to-r from-swat-green/5 to-swat-green/10 rounded-xl p-8 border border-swat-green/20">

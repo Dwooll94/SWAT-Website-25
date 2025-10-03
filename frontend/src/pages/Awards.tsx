@@ -1,8 +1,20 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import SEO from '../components/SEO';
+import { redirectBotIfNeeded } from '../utils/botDetection';
 
 const Awards: React.FC = () => {
+  useEffect(() => {
+    // Redirect bots to pre-rendered version
+    redirectBotIfNeeded('awards');
+  }, []);
+
   return (
     <div className="bg-white py-12">
+      <SEO
+        title="Awards & Recognition"
+        description="Celebrating SWAT Team 1806's achievements and milestones in FIRST Robotics Competition. View our competition history, awards, and accomplishments on The Blue Alliance."
+        keywords="SWAT 1806 awards, FRC awards, Team 1806 achievements, robotics competition awards, regional winners, state championships, FRC history, competition results"
+      />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
           <h1 className="text-4xl font-extrabold text-gray-900 mb-4">

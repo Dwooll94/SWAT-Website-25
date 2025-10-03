@@ -5,6 +5,8 @@ import ResponsiveSlideshow from '../components/ResponsiveSlideshow';
 import SponsorSlideshow from '../components/SponsorSlideshow';
 import MarkdownRenderer from '../components/MarkdownRenderer';
 import LiveEventDisplay from '../components/LiveEventDisplay';
+import SEO from '../components/SEO';
+import { redirectBotIfNeeded } from '../utils/botDetection';
 import moment from 'moment';
 
 interface Subteam {
@@ -35,6 +37,9 @@ const Home: React.FC = () => {
   const [loadingHomePage, setLoadingHomePage] = useState(true);
 
   useEffect(() => {
+    // Redirect bots to pre-rendered version
+    redirectBotIfNeeded('home');
+
     const loadConfiguration = async () => {
       try {
         const response = await api.get('/config');
@@ -76,6 +81,11 @@ const Home: React.FC = () => {
 
   return (
     <div className="bg-white">
+      <SEO
+        title="Home"
+        description="SWAT Team 1806 - Smithville Warriors Advancing Technology. FRC robotics team from Smithville, Missouri. Building tomorrow's leaders today through FIRST Robotics Competition."
+        keywords="SWAT 1806, Team 1806, FRC robotics, FIRST Robotics Competition, Smithville robotics, Missouri robotics, STEM education, robotics team, FRC team, Rebuilt, engineering"
+      />
       {/* Live Event Display */}
       <div className="w-full">
         <LiveEventDisplay />
