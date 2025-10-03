@@ -38,7 +38,7 @@ const Home: React.FC = () => {
 
   useEffect(() => {
     // Redirect bots to pre-rendered version
-    redirectBotIfNeeded('home');
+    redirectBotIfNeeded('');
 
     const loadConfiguration = async () => {
       try {
