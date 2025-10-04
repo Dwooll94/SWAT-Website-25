@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { useIframeResize } from '../../hooks/useIframeResize';
 
 /**
  * AwardsByType - Embeddable component for displaying awards filtered by regex pattern
@@ -16,6 +17,7 @@ import { useSearchParams } from 'react-router-dom';
  */
 
 interface Award {
+  event_name: string;
   event_key: string;
   award_type: number;
   name: string;
@@ -36,17 +38,21 @@ const AwardsByType: React.FC = () => {
   const [data, setData] = useState<AwardsByTypeData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showAll, setShowAll] = useState(false);
 
   const team = searchParams.get('team');
   const pattern = searchParams.get('pattern') || '.*';
   const label = searchParams.get('label') || 'Awards';
 
+  // Enable automatic iframe resizing - include showAll to trigger on dropdown toggle
+  useIframeResize([loading, data, showAll]);
+
   useEffect(() => {
     // Remove body margins/padding for iframe embedding
     document.body.style.margin = '0';
     document.body.style.padding = '0';
-    document.body.style.overflow = 'hidden';
-    document.documentElement.style.overflow = 'hidden';
+    
+    
 
     const fetchData = async () => {
       try {
@@ -77,7 +83,7 @@ const AwardsByType: React.FC = () => {
 
   if (loading) {
     return (
-      <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, overflow: 'hidden' }} className="flex items-start justify-center bg-gradient-to-br from-indigo-50 to-blue-100 pt-8">
+      <div className="min-h-screen flex items-start justify-center bg-gradient-to-br from-indigo-50 to-blue-100 pt-8">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
           <p className="mt-4 text-gray-600">Loading...</p>
@@ -88,7 +94,7 @@ const AwardsByType: React.FC = () => {
 
   if (error) {
     return (
-      <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, overflow: 'hidden' }} className="flex items-start justify-center bg-gradient-to-br from-red-50 to-pink-100 pt-8">
+      <div className="min-h-screen flex items-start justify-center bg-gradient-to-br from-red-50 to-pink-100 pt-8">
         <div className="text-center p-8">
           <div className="text-5xl mb-4">⚠️</div>
           <p className="text-red-600 font-semibold">Error loading data</p>
@@ -100,18 +106,17 @@ const AwardsByType: React.FC = () => {
 
   if (!data) {
     return (
-      <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, overflow: 'hidden' }} className="flex items-start justify-center bg-gradient-to-br from-gray-50 to-gray-100 pt-8">
+      <div className="min-h-screen flex items-start justify-center bg-gradient-to-br from-gray-50 to-gray-100 pt-8">
         <p className="text-gray-600">No data available</p>
       </div>
     );
   }
 
-  const recentAwards = data.awards
-    .sort((a, b) => b.year - a.year)
-    .slice(0, 3);
+  const sortedAwards = data.awards.sort((a, b) => b.year - a.year);
+  const displayedAwards = showAll ? sortedAwards : sortedAwards.slice(0, 3);
 
   return (
-    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, overflow: 'hidden' }} className="flex items-start justify-center bg-gradient-to-br from-indigo-50 to-blue-100 p-4 pt-8">
+    <div className="min-h-screen flex items-start justify-center bg-gradient-to-br from-indigo-50 to-blue-100 p-4 pt-8">
       <div className="bg-white rounded-2xl shadow-2xl p-8 text-center max-w-md w-full">
         <div className="mb-6">
           <div className="text-7xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-blue-600">
@@ -125,21 +130,24 @@ const AwardsByType: React.FC = () => {
           </div>
         </div>
 
-        {recentAwards.length > 0 && (
+        {displayedAwards.length > 0 && (
           <div className="mt-6 space-y-2">
             <div className="text-sm font-semibold text-gray-600 mb-3">Recent Awards</div>
-            {recentAwards.map((award, idx) => (
+            {displayedAwards.map((award, idx) => (
               <div key={idx} className="flex justify-between items-center bg-gradient-to-r from-indigo-50 to-blue-50 rounded-lg p-3">
                 <div className="text-left flex-1">
                   <div className="font-medium text-gray-700 text-sm">{award.name}</div>
-                  <div className="text-xs text-gray-500 mt-1">{award.year}</div>
+                  <div className="text-xs text-gray-500 mt-1">{award.year} {award.event_name}</div>
                 </div>
               </div>
             ))}
             {data.awards.length > 3 && (
-              <div className="text-xs text-gray-500 mt-2">
-                +{data.awards.length - 3} more
-              </div>
+              <button
+                onClick={() => setShowAll(!showAll)}
+                className="mt-2 text-xs text-indigo-600 hover:text-indigo-800 font-medium transition-colors"
+              >
+                {showAll ? '▲ Show less' : `▼ Show ${data.awards.length - 3} more`}
+              </button>
             )}
           </div>
         )}

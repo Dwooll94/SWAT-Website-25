@@ -5,7 +5,9 @@
       "Bash(npx create-react-app:*)",
       "Bash(npm init:*)",
       "Bash(npm install:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(perl:*)",
+      "Bash(npm run build:*)"
     ],
     "deny": [],
     "ask": []

@@ -6,6 +6,23 @@ const Awards: React.FC = () => {
   useEffect(() => {
     // Redirect bots to pre-rendered version
     redirectBotIfNeeded('awards');
+
+    // Handle iframe resize messages
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data.type === 'iframe-resize') {
+        const iframes = document.querySelectorAll('iframe');
+        iframes.forEach((iframe) => {
+          if (iframe.contentWindow === event.source) {
+            // Set height and mark as loaded
+            iframe.style.height = `${event.data.height}px`;
+            iframe.setAttribute('data-loaded', 'true');
+          }
+        });
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
   }, []);
 
   return (
@@ -31,38 +48,38 @@ const Awards: React.FC = () => {
             Team Statistics
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div className="bg-white rounded-lg shadow-md overflow-hidden" style={{ minHeight: '250px' }}>
+            <div>
               <iframe
                 src="/embed/regional-wins"
-                className="w-full h-full"
-                style={{ minHeight: '600px' }}
+                className="w-full transition-all duration-300"
+                style={{ border: 'none', display: 'block', minHeight: '400px' }}
                 title="Regional Wins"
                 frameBorder="0"
               />
             </div>
-            <div className="bg-white rounded-lg shadow-md overflow-hidden" style={{ minHeight: '250px' }}>
+            <div>
               <iframe
                 src="/embed/event-wins"
-                className="w-full h-full"
-                style={{ minHeight: '600px' }}
+                className="w-full transition-all duration-300"
+                style={{ border: 'none', display: 'block', minHeight: '400px' }}
                 title="Event Wins"
                 frameBorder="0"
               />
             </div>
-            <div className="bg-white rounded-lg shadow-md overflow-hidden" style={{ minHeight: '250px' }}>
+            <div>
               <iframe
                 src="/embed/award-count"
-                className="w-full h-full"
-                style={{ minHeight: '600px' }}
+                className="w-full transition-all duration-300"
+                style={{ border: 'none', display: 'block', minHeight: '400px' }}
                 title="Award Count"
                 frameBorder="0"
               />
             </div>
-            <div className="bg-white rounded-lg shadow-md overflow-hidden" style={{ minHeight: '250px' }}>
+            <div>
               <iframe
                 src="/embed/events-entered"
-                className="w-full h-full"
-                style={{ minHeight: '350px' }}
+                className="w-full transition-all duration-300"
+                style={{ border: 'none', display: 'block', minHeight: '400px' }}
                 title="Events Entered"
                 frameBorder="0"
               />
@@ -76,38 +93,38 @@ const Awards: React.FC = () => {
             Awards
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div className="bg-white rounded-lg shadow-md overflow-hidden" style={{ minHeight: '250px' }}>
+            <div>
               <iframe
                 src="/embed/awards-by-type?pattern=.*Innovation%20in%20Control.*&label=Innovation%20in%20Control%20Award"
-                className="w-full h-full"
-                style={{ minHeight: '700px' }}
+                className="w-full transition-all duration-300"
+                style={{ border: 'none', display: 'block', minHeight: '450px' }}
                 title="Innovation in Control Awards"
                 frameBorder="0"
               />
             </div>
-            <div className="bg-white rounded-lg shadow-md overflow-hidden" style={{ minHeight: '250px' }}>
+            <div>
               <iframe
                 src="/embed/awards-by-type?pattern=.*Quality.*&label=Quality%20Award"
-                className="w-full h-full"
-                style={{ minHeight: '700px' }}
+                className="w-full transition-all duration-300"
+                style={{ border: 'none', display: 'block', minHeight: '450px' }}
                 title="Quality Awards"
                 frameBorder="0"
               />
             </div>
-            <div className="bg-white rounded-lg shadow-md overflow-hidden" style={{ minHeight: '250px' }}>
+            <div>
               <iframe
                 src="/embed/awards-by-type?pattern=.*Gracious%20Professionalism.*&label=Gracious%20Professionalism%20Award"
-                className="w-full h-full"
-                style={{ minHeight: '700px' }}
+                className="w-full transition-all duration-300"
+                style={{ border: 'none', display: 'block', minHeight: '450px' }}
                 title="Gracious Professionalism Awards"
                 frameBorder="0"
               />
             </div>
-            <div className="bg-white rounded-lg shadow-md overflow-hidden" style={{ minHeight: '250px' }}>
+            <div>
               <iframe
                 src="/embed/awards-by-type?pattern=.*Excellence%20in%20Engineering.*&label=Excellence%20in%20Engineering%20Award"
-                className="w-full h-full"
-                style={{ minHeight: '700px' }}
+                className="w-full transition-all duration-300"
+                style={{ border: 'none', display: 'block', minHeight: '450px' }}
                 title="Excellence In Engineering Awards"
                 frameBorder="0"
               />
@@ -121,29 +138,29 @@ const Awards: React.FC = () => {
             Recent Performance
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-white rounded-lg shadow-md overflow-hidden" style={{ minHeight: '300px' }}>
+            <div>
               <iframe
                 src="/embed/most-recent-win"
-                className="w-full h-full"
-                style={{ minHeight: '600px' }}
+                className="w-full transition-all duration-300"
+                style={{ border: 'none', display: 'block', minHeight: '400px' }}
                 title="Most Recent Win"
                 frameBorder="0"
               />
             </div>
-            <div className="bg-white rounded-lg shadow-md overflow-hidden" style={{ minHeight: '300px' }}>
+            <div>
               <iframe
                 src="/embed/most-recent-award"
-                className="w-full h-full"
-                style={{ minHeight: '600px' }}
+                className="w-full transition-all duration-300"
+                style={{ border: 'none', display: 'block', minHeight: '400px' }}
                 title="Most Recent Award"
                 frameBorder="0"
               />
             </div>
-            <div className="bg-white rounded-lg shadow-md overflow-hidden md:col-span-1" style={{ minHeight: '300px' }}>
+            <div>
               <iframe
                 src="/embed/most-recent-results"
-                className="w-full h-full"
-                style={{ minHeight: '600px' }}
+                className="w-full transition-all duration-300"
+                style={{ border: 'none', display: 'block', minHeight: '500px' }}
                 title="Most Recent Results"
                 frameBorder="0"
               />

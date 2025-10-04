@@ -13,6 +13,7 @@ interface TBATeamEventSimple {
 }
 
 interface TBAAward {
+  event_name: string;
   event_key: string;
   award_type: number;
   name: string;
@@ -45,7 +46,80 @@ interface TBAEventAlliance {
   };
 }
 
+interface CacheEntry<T> {
+  data: T;
+  timestamp: number;
+}
+
 class TBAStatsController {
+  // In-memory cache for TBA data
+  private cache: Map<string, CacheEntry<any>> = new Map();
+  private readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutes in milliseconds
+
+  private getCacheKey(endpoint: string, teamKey: string): string {
+    return `${teamKey}:${endpoint}`;
+  }
+
+  private getFromCache<T>(key: string): T | null {
+    const entry = this.cache.get(key);
+    if (!entry) return null;
+
+    const now = Date.now();
+    if (now - entry.timestamp > this.CACHE_TTL) {
+      this.cache.delete(key);
+      return null;
+    }
+
+    return entry.data as T;
+  }
+
+  private setCache<T>(key: string, data: T): void {
+    this.cache.set(key, {
+      data,
+      timestamp: Date.now()
+    });
+  }
+
+  private async fetchTeamAwards(teamKey: string, apiKey: string): Promise<TBAAward[]> {
+    const cacheKey = this.getCacheKey('awards', teamKey);
+    const cached = this.getFromCache<TBAAward[]>(cacheKey);
+
+    if (cached) {
+      return cached;
+    }
+
+    const response = await axios.get<TBAAward[]>(
+      `https://www.thebluealliance.com/api/v3/team/${teamKey}/awards`,
+      {
+        headers: { 'X-TBA-Auth-Key': apiKey },
+        timeout: 10000,
+      }
+    );
+
+    this.setCache(cacheKey, response.data);
+    return response.data;
+  }
+
+  private async fetchTeamEvents(teamKey: string, apiKey: string): Promise<TBATeamEventSimple[]> {
+    const cacheKey = this.getCacheKey('events', teamKey);
+    const cached = this.getFromCache<TBATeamEventSimple[]>(cacheKey);
+
+    if (cached) {
+      return cached;
+    }
+
+    const response = await axios.get<TBATeamEventSimple[]>(
+      `https://www.thebluealliance.com/api/v3/team/${teamKey}/events/simple`,
+      {
+        headers: { 'X-TBA-Auth-Key': apiKey },
+        timeout: 10000,
+      }
+    );
+
+    this.setCache(cacheKey, response.data);
+    return response.data;
+  }
+
   private async getApiKey(): Promise<string | null> {
     try {
       const config = await EventModel.getConfig('tba_api_key');
@@ -82,15 +156,7 @@ class TBAStatsController {
       const teamNumber = await this.getTeamNumber(req);
       const teamKey = `frc${teamNumber}`;
 
-      const response = await axios.get<TBAAward[]>(
-        `https://www.thebluealliance.com/api/v3/team/${teamKey}/awards`,
-        {
-          headers: { 'X-TBA-Auth-Key': apiKey },
-          timeout: 10000,
-        }
-      );
-
-      const awards = response.data;
+      const awards = await this.fetchTeamAwards(teamKey, apiKey);
 
       // Regional winners and finalists (event_type 0-2 are regionals)
       const regionalWins = awards.filter(award => {
@@ -129,15 +195,7 @@ class TBAStatsController {
       const teamNumber = await this.getTeamNumber(req);
       const teamKey = `frc${teamNumber}`;
 
-      const response = await axios.get<TBAAward[]>(
-        `https://www.thebluealliance.com/api/v3/team/${teamKey}/awards`,
-        {
-          headers: { 'X-TBA-Auth-Key': apiKey },
-          timeout: 10000,
-        }
-      );
-
-      const awards = response.data;
+      const awards = await this.fetchTeamAwards(teamKey, apiKey);
       const eventWins = awards.filter(award => award.award_type === 1);
 
       res.json({
@@ -164,15 +222,7 @@ class TBAStatsController {
       const teamNumber = await this.getTeamNumber(req);
       const teamKey = `frc${teamNumber}`;
 
-      const response = await axios.get<TBAAward[]>(
-        `https://www.thebluealliance.com/api/v3/team/${teamKey}/awards`,
-        {
-          headers: { 'X-TBA-Auth-Key': apiKey },
-          timeout: 10000,
-        }
-      );
-
-      const awards = response.data;
+      const awards = await this.fetchTeamAwards(teamKey, apiKey);
 
       res.json({
         teamKey,
@@ -201,15 +251,7 @@ class TBAStatsController {
       const teamNumber = await this.getTeamNumber(req);
       const teamKey = `frc${teamNumber}`;
 
-      const response = await axios.get<TBATeamEventSimple[]>(
-        `https://www.thebluealliance.com/api/v3/team/${teamKey}/events/simple`,
-        {
-          headers: { 'X-TBA-Auth-Key': apiKey },
-          timeout: 10000,
-        }
-      );
-
-      const events = response.data;
+      const events = await this.fetchTeamEvents(teamKey, apiKey);
 
       res.json({
         teamKey,
@@ -240,15 +282,7 @@ class TBAStatsController {
       const teamNumber = await this.getTeamNumber(req);
       const teamKey = `frc${teamNumber}`;
 
-      const response = await axios.get<TBAAward[]>(
-        `https://www.thebluealliance.com/api/v3/team/${teamKey}/awards`,
-        {
-          headers: { 'X-TBA-Auth-Key': apiKey },
-          timeout: 10000,
-        }
-      );
-
-      const awards = response.data;
+      const awards = await this.fetchTeamAwards(teamKey, apiKey);
       const eventWins = awards.filter(award => award.award_type === 1);
 
       // Sort by year descending
@@ -298,15 +332,7 @@ class TBAStatsController {
       const teamNumber = await this.getTeamNumber(req);
       const teamKey = `frc${teamNumber}`;
 
-      const response = await axios.get<TBATeamEventSimple[]>(
-        `https://www.thebluealliance.com/api/v3/team/${teamKey}/events/simple`,
-        {
-          headers: { 'X-TBA-Auth-Key': apiKey },
-          timeout: 10000,
-        }
-      );
-
-      const events = response.data;
+      const events = await this.fetchTeamEvents(teamKey, apiKey);
 
       // Filter to only include past events (end_date is in the past)
       const now = new Date();
@@ -374,15 +400,7 @@ class TBAStatsController {
       const teamNumber = await this.getTeamNumber(req);
       const teamKey = `frc${teamNumber}`;
 
-      const response = await axios.get<TBAAward[]>(
-        `https://www.thebluealliance.com/api/v3/team/${teamKey}/awards`,
-        {
-          headers: { 'X-TBA-Auth-Key': apiKey },
-          timeout: 10000,
-        }
-      );
-
-      const awards = response.data;
+      const awards = await this.fetchTeamAwards(teamKey, apiKey);
 
       // Sort by year descending
       awards.sort((a, b) => b.year - a.year);
@@ -434,15 +452,7 @@ class TBAStatsController {
       const pattern = req.query.pattern as string || '.*';
       const label = req.query.label as string || 'Awards';
 
-      const response = await axios.get<TBAAward[]>(
-        `https://www.thebluealliance.com/api/v3/team/${teamKey}/awards`,
-        {
-          headers: { 'X-TBA-Auth-Key': apiKey },
-          timeout: 10000,
-        }
-      );
-
-      const awards = response.data;
+      const awards = await this.fetchTeamAwards(teamKey, apiKey);
 
       // Filter awards by regex pattern
       let regex: RegExp;
@@ -454,6 +464,26 @@ class TBAStatsController {
       }
 
       const matchingAwards = awards.filter(award => regex.test(award.name));
+
+      matchingAwards.forEach(async (award, index) =>{
+          // Fetch event name if we have a most recent award
+          let eventName = null;
+            try {
+              const eventResponse = await axios.get(
+                `https://www.thebluealliance.com/api/v3/event/${award.event_key}`,
+                {
+                  headers: { 'X-TBA-Auth-Key': apiKey },
+                  timeout: 10000,
+                }
+              );
+              eventName = eventResponse.data.name;
+            } catch (e) {
+              console.error('Failed to fetch event name:', e);
+              // If we can't get the event name, we'll just use null
+            }
+            award.event_name = eventName?eventName:award.event_key;
+        }
+      )
 
       res.json({
         teamKey,

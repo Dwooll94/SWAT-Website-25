@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { useIframeResize } from '../../hooks/useIframeResize';
 
 interface Award {
   event_key: string;
@@ -23,12 +24,14 @@ const MostRecentWin: React.FC = () => {
 
   const team = searchParams.get('team');
 
+  useIframeResize([loading, data]);
+
   useEffect(() => {
     // Remove body margins/padding for iframe embedding
     document.body.style.margin = '0';
     document.body.style.padding = '0';
-    document.body.style.overflow = 'hidden';
-    document.documentElement.style.overflow = 'hidden';
+    
+    
 
     const fetchData = async () => {
       try {
@@ -55,7 +58,7 @@ const MostRecentWin: React.FC = () => {
 
   if (loading) {
     return (
-      <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, overflow: 'hidden' }} className="flex items-start justify-center bg-gradient-to-br from-yellow-50 to-amber-100 pt-8">
+      <div className="min-h-screen flex items-start justify-center bg-gradient-to-br from-yellow-50 to-amber-100 pt-8">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-600 mx-auto"></div>
           <p className="mt-4 text-gray-600">Loading...</p>
@@ -66,7 +69,7 @@ const MostRecentWin: React.FC = () => {
 
   if (error) {
     return (
-      <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, overflow: 'hidden' }} className="flex items-start justify-center bg-gradient-to-br from-red-50 to-pink-100 pt-8">
+      <div className="min-h-screen flex items-start justify-center bg-gradient-to-br from-red-50 to-pink-100 pt-8">
         <div className="text-center p-8">
           <div className="text-5xl mb-4">⚠️</div>
           <p className="text-red-600 font-semibold">Error loading data</p>
@@ -78,7 +81,7 @@ const MostRecentWin: React.FC = () => {
 
   if (!data || !data.mostRecentWin) {
     return (
-      <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, overflow: 'hidden' }} className="flex items-start justify-center bg-gradient-to-br from-gray-50 to-gray-100 p-4 pt-8">
+      <div className="min-h-screen flex items-start justify-center bg-gradient-to-br from-gray-50 to-gray-100 p-4 pt-8">
         <div className="bg-white rounded-2xl shadow-2xl p-8 text-center max-w-md w-full">
           <div className="text-5xl mb-4">🏆</div>
           <p className="text-gray-600 font-semibold">No wins recorded</p>
@@ -89,7 +92,7 @@ const MostRecentWin: React.FC = () => {
   }
 
   return (
-    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, overflow: 'hidden' }} className="flex items-start justify-center bg-gradient-to-br from-yellow-50 to-amber-100 p-4 pt-8">
+    <div className="min-h-screen flex items-start justify-center bg-gradient-to-br from-yellow-50 to-amber-100 p-4 pt-8">
       <div className="bg-white rounded-2xl shadow-2xl p-8 text-center max-w-md w-full">
         <div className="mb-6">
           <div className="text-6xl mb-4">🏆</div>
