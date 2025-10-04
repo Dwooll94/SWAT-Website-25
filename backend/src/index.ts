@@ -18,6 +18,7 @@ import configRoutes from './routes/config';
 import rosterRoutes from './routes/roster';
 import pagesRoutes from './routes/pages';
 import eventsRoutes from './routes/events';
+import tbaStatsRoutes from './routes/tbaStats';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 import { testConnection, gracefulShutdown } from './utils/database';
 import { AdminInitService } from './services/adminInitService';
@@ -71,6 +72,7 @@ app.use('/api/config', configRoutes);
 app.use('/api/roster', rosterRoutes);
 app.use('/api/pages', pagesRoutes);
 app.use('/api/events', eventsRoutes);
+app.use('/api/tba-stats', tbaStatsRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

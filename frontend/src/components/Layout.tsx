@@ -1,14 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, Outlet } from 'react-router-dom';
 import { useAuth, api } from '../contexts/AuthContext';
 import ContractUploadModal from './ContractUploadModal';
 import FirstSignupModal from './FirstSignupModal';
 
-interface LayoutProps {
-  children: React.ReactNode;
-}
 
-const Layout: React.FC<LayoutProps> = ({ children }) => {
+const Layout: React.FC = () => {
   const { user, logout, refreshUser } = useAuth();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -292,7 +289,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       </nav>
       
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        {children}
+        <Outlet />
       </main>
       
       <footer className="bg-swat-black text-swat-white py-8 mt-12 border-t-4 border-swat-green">
