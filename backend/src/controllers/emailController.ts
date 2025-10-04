@@ -116,16 +116,21 @@ export const sendMassEmail = async (req: AuthenticatedRequest, res: Response) =>
     }
 
     // Build sender information
-    const senderName = currentUser.first_name && currentUser.last_name 
-      ? `${currentUser.first_name} ${currentUser.last_name}` 
+    const senderName = currentUser.first_name && currentUser.last_name
+      ? `${currentUser.first_name} ${currentUser.last_name}`
       : currentUser.email;
-    
+
     const senderRole = currentUser.role === 'student' && await StudentAttributeModel.isCoreLeadership(currentUser.id)
       ? 'Core Leadership Student'
       : currentUser.role.charAt(0).toUpperCase() + currentUser.role.slice(1);
 
+    // Use school email if available, otherwise use regular email
+    const senderEmail = currentUser.school_email && currentUser.school_email.trim()
+      ? currentUser.school_email
+      : currentUser.email;
+
     // Send emails
-    const emailPromises = recipients.map((recipient: any) => 
+    const emailPromises = recipients.map((recipient: any) =>
       emailService.sendMassEmail({
         to: recipient.email,
         recipientName: recipient.name,
@@ -133,20 +138,20 @@ export const sendMassEmail = async (req: AuthenticatedRequest, res: Response) =>
         message,
         senderName,
         senderRole,
-        senderEmail: currentUser.email
+        senderEmail
       })
     );
 
     if (send_copy_to_sender) {
       emailPromises.push(
         emailService.sendMassEmail({
-          to: currentUser.email,
+          to: senderEmail,
           recipientName: senderName,
           subject: `[COPY] ${subject}`,
           message: `This is a copy of the mass email you sent to ${recipients.length} recipient(s).\n\n---\n\n${message}`,
           senderName,
           senderRole,
-          senderEmail: currentUser.email
+          senderEmail
         })
       );
     }
