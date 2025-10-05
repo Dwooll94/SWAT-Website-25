@@ -49,10 +49,14 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
   } : undefined; // Use default (safer) sanitization for public content
 
   // If we're using pre-processed content from the backend, render it directly
+  // Check if content contains custom HTML elements that should NOT get markdown styling
   if (useProcessedContent) {
+    // Check for common custom HTML patterns (iframes, custom divs with specific classes, etc.)
+    const hasCustomHTML = /<iframe|<div[^>]*class="(?!markdown-|prose|alert|notice|info|highlight|featured)[^"]*"/i.test(content);
+
     return (
       <div
-        className={`prose prose-lg max-w-none ${className}`}
+        className={`${!hasCustomHTML ? 'markdown-content' : ''} prose prose-lg max-w-none ${className}`}
         dangerouslySetInnerHTML={{ __html: content }}
       />
     );
