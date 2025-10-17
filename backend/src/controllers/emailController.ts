@@ -129,9 +129,12 @@ export const sendMassEmail = async (req: AuthenticatedRequest, res: Response) =>
       ? currentUser.school_email
       : currentUser.email;
 
-    // Send emails
-    const emailPromises = recipients.map((recipient: any) =>
-      emailService.sendMassEmail({
+    // Send emails sequentially to avoid rate limiting and allow proper error handling/retry
+    let successCount = 0;
+    let failureCount = 0;
+
+    for (const recipient of recipients) {
+      const success = await emailService.sendMassEmail({
         to: recipient.email,
         recipientName: recipient.name,
         subject,
@@ -139,27 +142,42 @@ export const sendMassEmail = async (req: AuthenticatedRequest, res: Response) =>
         senderName,
         senderRole,
         senderEmail
-      })
-    );
+      });
 
-    if (send_copy_to_sender) {
-      emailPromises.push(
-        emailService.sendMassEmail({
-          to: senderEmail,
-          recipientName: senderName,
-          subject: `[COPY] ${subject}`,
-          message: `This is a copy of the mass email you sent to ${recipients.length} recipient(s).\n\n---\n\n${message}`,
-          senderName,
-          senderRole,
-          senderEmail
-        })
-      );
+      if (success) {
+        successCount++;
+      } else {
+        failureCount++;
+        console.error(`Failed to send email to ${recipient.email} (${recipient.name})`);
+      }
     }
 
-    await Promise.all(emailPromises);
+    if (send_copy_to_sender) {
+      await emailService.sendMassEmail({
+        to: senderEmail,
+        recipientName: senderName,
+        subject: `[COPY] ${subject}`,
+        message: `This is a copy of the mass email you sent to ${recipients.length} recipient(s).\n\n---\n\n${message}`,
+        senderName,
+        senderRole,
+        senderEmail
+      });
+    }
 
-    res.json({ 
-      message: `Mass email sent successfully to ${recipients.length} recipient(s)${send_copy_to_sender ? ' (copy sent to sender)' : ''}` 
+    // Build response message
+    let responseMessage = `Mass email completed: ${successCount} sent successfully`;
+    if (failureCount > 0) {
+      responseMessage += `, ${failureCount} failed`;
+    }
+    if (send_copy_to_sender) {
+      responseMessage += ' (copy sent to sender)';
+    }
+
+    res.json({
+      message: responseMessage,
+      successCount,
+      failureCount,
+      totalRecipients: recipients.length
     });
   } catch (error) {
     console.error('Send mass email error:', error);

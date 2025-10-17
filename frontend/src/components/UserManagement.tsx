@@ -16,6 +16,8 @@ const UserManagement: React.FC<UserManagementProps> = ({ currentUserRole }) => {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [reportLoading, setReportLoading] = useState(false);
+  const [reportMessage, setReportMessage] = useState('');
 
   const fetchUsers = async (search?: string) => {
     try {
@@ -116,6 +118,41 @@ const UserManagement: React.FC<UserManagementProps> = ({ currentUserRole }) => {
     return phone.replace(/\D/g, '');
   };
 
+  const handleGenerateReport = async (reportType: 'student-emails' | 'all-emails' | 'food-allergies') => {
+    try {
+      setReportLoading(true);
+      setReportMessage('');
+      setError('');
+
+      const response = await api.get(`/reports/${reportType}`);
+
+      if (reportType === 'food-allergies') {
+        // Copy the detailed allergies to clipboard
+        const { detailed, count } = response.data;
+        let reportText = `Food Allergies Report (${count} people)\n\n`;
+        detailed.forEach((item: any) => {
+          reportText += `${item.name} (${item.role}): ${item.allergies}\n`;
+        });
+
+        await navigator.clipboard.writeText(reportText);
+        setReportMessage(`Food allergies report copied to clipboard (${count} people with allergies)`);
+      } else {
+        // Copy emails to clipboard
+        const { emails, count } = response.data;
+        await navigator.clipboard.writeText(emails);
+        setReportMessage(`${count} email addresses copied to clipboard`);
+      }
+
+      // Clear message after 5 seconds
+      setTimeout(() => setReportMessage(''), 5000);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to generate report');
+      console.error('Failed to generate report:', err);
+    } finally {
+      setReportLoading(false);
+    }
+  };
+
   if (loading && users.length === 0) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -128,7 +165,42 @@ const UserManagement: React.FC<UserManagementProps> = ({ currentUserRole }) => {
     <div>
       <div className="mb-6">
         <h2 className="text-2xl font-impact text-swat-black mb-4">USER MANAGEMENT</h2>
-        
+
+        {/* Reports Section */}
+        {(currentUserRole === 'admin' || currentUserRole === 'mentor') && (
+          <div className="mb-6 bg-gray-50 border border-gray-200 rounded-lg p-4">
+            <h3 className="text-lg font-semibold text-gray-900 mb-3">Reports</h3>
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => handleGenerateReport('student-emails')}
+                disabled={reportLoading}
+                className="bg-swat-green hover:bg-swat-green-dark text-white px-4 py-2 rounded-md font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {reportLoading ? 'Generating...' : 'Student Emails'}
+              </button>
+              <button
+                onClick={() => handleGenerateReport('all-emails')}
+                disabled={reportLoading}
+                className="bg-swat-green hover:bg-swat-green-dark text-white px-4 py-2 rounded-md font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {reportLoading ? 'Generating...' : 'All Emails (Students, Guardians, Mentors)'}
+              </button>
+              <button
+                onClick={() => handleGenerateReport('food-allergies')}
+                disabled={reportLoading}
+                className="bg-swat-green hover:bg-swat-green-dark text-white px-4 py-2 rounded-md font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {reportLoading ? 'Generating...' : 'Food Allergies'}
+              </button>
+            </div>
+            {reportMessage && (
+              <div className="mt-3 bg-green-100 border border-green-400 text-green-700 px-4 py-2 rounded">
+                {reportMessage}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Search Bar */}
         <form onSubmit={handleSearch} className="mb-4">
           <div className="flex space-x-2">

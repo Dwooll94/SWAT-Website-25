@@ -14,9 +14,18 @@ export interface EmailConfig {
   };
 }
 
+interface EmailError extends Error {
+  code?: string;
+  response?: string;
+  responseCode?: number;
+  command?: string;
+}
+
 class EmailService {
   private transporter: nodemailer.Transporter | null = null;
   private initialized = false;
+  private lastEmailSentAt: number = 0;
+  private readonly EMAIL_DELAY_MS = 1000; // 1 second delay between emails
 
   constructor() {
     this.initializeTransporter();
@@ -54,13 +63,55 @@ class EmailService {
     }
   }
 
-  async sendEmail(to: string, subject: string, text: string, html?: string): Promise<boolean> {
+  private async sleep(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  private isTransientError(error: EmailError): boolean {
+    // Check for specific transient error codes
+    const transientCodes = ['EENVELOPE', 'ETIMEDOUT', 'ECONNRESET', 'ENOTFOUND', 'ECONNREFUSED'];
+    if (error.code && transientCodes.includes(error.code)) {
+      return true;
+    }
+
+    // Check for transient SMTP response codes
+    // 421 = Service not available (temporary)
+    // 450 = Requested action not taken (mailbox busy)
+    // 451 = Requested action aborted (local error)
+    // 452 = Requested action not taken (insufficient storage)
+    const transientResponseCodes = [421, 450, 451, 452];
+    if (error.responseCode && transientResponseCodes.includes(error.responseCode)) {
+      return true;
+    }
+
+    return false;
+  }
+
+  private async throttleEmail(): Promise<void> {
+    const now = Date.now();
+    const timeSinceLastEmail = now - this.lastEmailSentAt;
+
+    if (timeSinceLastEmail < this.EMAIL_DELAY_MS) {
+      const delayNeeded = this.EMAIL_DELAY_MS - timeSinceLastEmail;
+      await this.sleep(delayNeeded);
+    }
+
+    this.lastEmailSentAt = Date.now();
+  }
+
+  async sendEmail(to: string, subject: string, text: string, html?: string, retryCount: number = 0): Promise<boolean> {
     if (!this.initialized || !this.transporter) {
       console.error('Email service not initialized or configured');
       return false;
     }
 
+    const MAX_RETRIES = 3;
+    const RETRY_DELAY_MS = 10 * 60 * 1000; // 10 minutes
+
     try {
+      // Throttle emails to avoid rate limiting
+      await this.throttleEmail();
+
       const mailOptions = {
         from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
         to,
@@ -73,7 +124,27 @@ class EmailService {
       console.log('Email sent successfully:', result.messageId);
       return true;
     } catch (error) {
-      console.error('Failed to send email:', error);
+      const emailError = error as EmailError;
+      console.error('Failed to send email:', {
+        to,
+        subject,
+        error: emailError.message,
+        code: emailError.code,
+        responseCode: emailError.responseCode,
+        response: emailError.response
+      });
+
+      // Check if this is a transient error and we haven't exceeded retry limit
+      if (this.isTransientError(emailError) && retryCount < MAX_RETRIES) {
+        const waitTime = RETRY_DELAY_MS;
+        console.log(`Transient error detected. Waiting ${waitTime / 1000 / 60} minutes before retry ${retryCount + 1}/${MAX_RETRIES}...`);
+
+        await this.sleep(waitTime);
+
+        console.log(`Retrying email to ${to} (attempt ${retryCount + 1}/${MAX_RETRIES})...`);
+        return this.sendEmail(to, subject, text, html, retryCount + 1);
+      }
+
       return false;
     }
   }

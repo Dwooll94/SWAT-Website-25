@@ -8,6 +8,7 @@ import https from 'https';
 import dotenv from 'dotenv';
 import authRoutes from './routes/auth';
 import emailRoutes from './routes/email';
+import reportsRoutes from './routes/reports';
 import subteamRoutes from './routes/subteams';
 import sponsorRoutes from './routes/sponsors';
 import resourceRoutes from './routes/resources';
@@ -62,6 +63,7 @@ app.get('/health', (req, res) => {
 
 app.use('/api/auth', authRoutes);
 app.use('/api/email', emailRoutes);
+app.use('/api/reports', reportsRoutes);
 app.use('/api/subteams', subteamRoutes);
 app.use('/api/sponsors', sponsorRoutes);
 app.use('/api/resources', resourceRoutes);
