@@ -415,7 +415,8 @@ export const getAllUsers = async (req: AuthenticatedRequest, res: Response) => {
       last_login: user.last_login,
       guardian_count: user.guardian_count,
       guardians: user.guardians || [],
-      is_core_leadership: user.is_core_leadership
+      is_core_leadership: user.is_core_leadership,
+      years_on_team: user.years_on_team || 0
     }));
 
     res.json(sanitizedUsers);
@@ -704,12 +705,50 @@ export const updateCoreLeadership = async (req: AuthenticatedRequest, res: Respo
     // Update core leadership status
     await StudentAttributeModel.setCoreLeadership(userId, is_core_leadership);
 
-    res.json({ 
-      message: `Student ${is_core_leadership ? 'granted' : 'removed from'} core leadership successfully` 
+    res.json({
+      message: `Student ${is_core_leadership ? 'granted' : 'removed from'} core leadership successfully`
     });
   } catch (error) {
     console.error('Update core leadership error:', error);
     res.status(500).json({ message: 'Server error updating core leadership status' });
+  }
+};
+
+export const updateYearsOnTeam = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    // Check if user is admin
+    const currentUser = await UserModel.findById(req.user!.userId);
+    if (!currentUser || currentUser.role !== 'admin') {
+      return res.status(403).json({ message: 'Access denied. Only administrators can modify years on team.' });
+    }
+
+    const { userId } = req.params;
+    const { years_on_team } = req.body;
+
+    // Check if target user exists and is a student
+    const targetUser = await UserModel.findById(userId);
+    if (!targetUser) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (targetUser.role !== 'student') {
+      return res.status(400).json({ message: 'Years on team can only be set for students' });
+    }
+
+    // Update years on team
+    await StudentAttributeModel.setYearsOnTeam(userId, years_on_team);
+
+    res.json({
+      message: `Student years on team updated to ${years_on_team} successfully`
+    });
+  } catch (error) {
+    console.error('Update years on team error:', error);
+    res.status(500).json({ message: 'Server error updating years on team' });
   }
 };
 

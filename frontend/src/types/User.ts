@@ -28,4 +28,5 @@ export interface User {
   guardian_count: number;
   guardians?: Guardian[];
   is_core_leadership?: boolean;
+  years_on_team?: number;
 }

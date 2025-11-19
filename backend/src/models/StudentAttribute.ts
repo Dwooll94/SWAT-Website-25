@@ -85,4 +85,18 @@ export class StudentAttributeModel {
   static async getCoreLeadershipUsers(): Promise<string[]> {
     return this.getUsersWithAttribute('isCoreLeadership', 'true');
   }
+
+  // Convenience methods for yearsOnTeam
+  static async getYearsOnTeam(userId: string): Promise<number> {
+    const value = await this.getAttribute(userId, 'yearsOnTeam');
+    return value ? parseInt(value, 10) : 0;
+  }
+
+  static async setYearsOnTeam(userId: string, years: number): Promise<void> {
+    if (years > 0) {
+      await this.setAttribute(userId, 'yearsOnTeam', years.toString());
+    } else {
+      await this.removeAttribute(userId, 'yearsOnTeam');
+    }
+  }
 }

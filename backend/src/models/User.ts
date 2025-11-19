@@ -217,11 +217,31 @@ export class UserModel {
   }
 
   static async resetAugustRegistrations(): Promise<void> {
+    // Reset registration status
     await pool.query(
-      `UPDATE users 
-       SET registration_status = 'contract_signed', updated_at = CURRENT_TIMESTAMP 
+      `UPDATE users
+       SET registration_status = 'contract_signed', updated_at = CURRENT_TIMESTAMP
        WHERE registration_status = 'complete' AND is_active = true AND role = 'student'`
     );
+
+    // Increment years on team for all active students
+    // First, get all active student user IDs
+    const result = await pool.query(
+      `SELECT id FROM users WHERE is_active = true AND role = 'student'`
+    );
+
+    // For each student, increment their YOT (or set to 1 if they don't have one)
+    for (const row of result.rows) {
+      await pool.query(
+        `INSERT INTO student_attributes (user_id, attribute_key, attribute_value)
+         VALUES ($1, 'yearsOnTeam', '1')
+         ON CONFLICT (user_id, attribute_key)
+         DO UPDATE SET
+           attribute_value = (CAST(student_attributes.attribute_value AS INTEGER) + 1)::TEXT,
+           updated_at = CURRENT_TIMESTAMP`,
+        [row.id]
+      );
+    }
   }
 
   static async deactivateExpiredUsers(): Promise<void> {
@@ -258,41 +278,43 @@ export class UserModel {
     return result.rows[0];
   }
 
-  static async getAllUsers(searchQuery?: string): Promise<Array<User & {guardian_count: number, guardians: Array<{email?: string, phone?: string}>, is_core_leadership?: boolean}>> {
+  static async getAllUsers(searchQuery?: string): Promise<Array<User & {guardian_count: number, guardians: Array<{email?: string, phone?: string}>, is_core_leadership?: boolean, years_on_team?: number}>> {
     let query = `
-      SELECT u.*, 
+      SELECT u.*,
              COALESCE(g.guardian_count, 0) as guardian_count,
              COALESCE(
                json_agg(
                  json_build_object('email', lg.email, 'phone', lg.phone)
                  ORDER BY lg.id
-               ) FILTER (WHERE lg.id IS NOT NULL), 
+               ) FILTER (WHERE lg.id IS NOT NULL),
                '[]'::json
              ) as guardians,
-             CASE WHEN sa.attribute_value = 'true' THEN true ELSE false END as is_core_leadership
+             CASE WHEN sa_core.attribute_value = 'true' THEN true ELSE false END as is_core_leadership,
+             CAST(sa_yot.attribute_value AS INTEGER) as years_on_team
       FROM users u
       LEFT JOIN (
-        SELECT user_id, COUNT(*) as guardian_count 
-        FROM legal_guardians 
+        SELECT user_id, COUNT(*) as guardian_count
+        FROM legal_guardians
         GROUP BY user_id
       ) g ON u.id = g.user_id
       LEFT JOIN legal_guardians lg ON u.id = lg.user_id
-      LEFT JOIN student_attributes sa ON u.id = sa.user_id AND sa.attribute_key = 'isCoreLeadership'
+      LEFT JOIN student_attributes sa_core ON u.id = sa_core.user_id AND sa_core.attribute_key = 'isCoreLeadership'
+      LEFT JOIN student_attributes sa_yot ON u.id = sa_yot.user_id AND sa_yot.attribute_key = 'yearsOnTeam'
     `;
-    
+
     const params: any[] = [];
-    
+
     if (searchQuery && searchQuery.trim()) {
       query += ` WHERE (
-        LOWER(u.first_name) LIKE LOWER($1) OR 
-        LOWER(u.last_name) LIKE LOWER($1) OR 
+        LOWER(u.first_name) LIKE LOWER($1) OR
+        LOWER(u.last_name) LIKE LOWER($1) OR
         LOWER(u.email) LIKE LOWER($1) OR
         LOWER(CONCAT(u.first_name, ' ', u.last_name)) LIKE LOWER($1)
       )`;
       params.push(`%${searchQuery.trim()}%`);
     }
-    
-    query += ` GROUP BY u.id, g.guardian_count, sa.attribute_value ORDER BY u.created_at DESC`;
+
+    query += ` GROUP BY u.id, g.guardian_count, sa_core.attribute_value, sa_yot.attribute_value ORDER BY u.created_at DESC`;
     
     const result = await pool.query(query, params);
     return result.rows;

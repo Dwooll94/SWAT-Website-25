@@ -205,7 +205,9 @@ const Roster: React.FC = () => {
 
             {/* Strategy Subteam (secondary subteam) */}
             {(() => {
-              const strategySubteam = rosterData?.subteams.find(s => s.name.toLowerCase() === 'strategy' && s.is_active);
+              if (!rosterData) return null;
+
+              const strategySubteam = rosterData.subteams.find(s => s.name.toLowerCase() === 'strategy' && s.is_active);
               if (!strategySubteam) return null;
 
               const strategyStudents = rosterData.students.filter(student =>

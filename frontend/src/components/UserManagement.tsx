@@ -274,6 +274,9 @@ const UserManagement: React.FC<UserManagementProps> = ({ currentUserRole }) => {
                   Core Leadership
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  YOT
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Guardians
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -356,6 +359,13 @@ const UserManagement: React.FC<UserManagementProps> = ({ currentUserRole }) => {
                       }`}>
                         {user.is_core_leadership ? 'Core' : 'Regular'}
                       </span>
+                    ) : (
+                      <span className="text-xs text-gray-400">N/A</span>
+                    )}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {user.role === 'student' ? (
+                      <span>{user.years_on_team || 0}</span>
                     ) : (
                       <span className="text-xs text-gray-400">N/A</span>
                     )}

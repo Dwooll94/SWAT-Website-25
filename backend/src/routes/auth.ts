@@ -3,7 +3,7 @@ import { body } from 'express-validator';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
-import { register, login, getProfile, updateRegistrationStatus, changePassword, updateContactInfo, updateGuardianInfo, inviteMentor, getAllUsers, updateUserStatus, updateMaintenanceAccess, updateUserContactInfoAdmin, deleteUser, deactivateOwnAccount, updateUserGuardianInfoAdmin, getUserGuardianInfoAdmin, updateCoreLeadership, updateUserRegistrationStatus, verifyEmail, resendVerificationEmail } from '../controllers/authController';
+import { register, login, getProfile, updateRegistrationStatus, changePassword, updateContactInfo, updateGuardianInfo, inviteMentor, getAllUsers, updateUserStatus, updateMaintenanceAccess, updateUserContactInfoAdmin, deleteUser, deactivateOwnAccount, updateUserGuardianInfoAdmin, getUserGuardianInfoAdmin, updateCoreLeadership, updateUserRegistrationStatus, updateYearsOnTeam, verifyEmail, resendVerificationEmail } from '../controllers/authController';
 import { authenticate } from '../middleware/auth';
 
 const router = Router();
@@ -77,6 +77,10 @@ const updateCoreLeadershipValidation = [
   body('is_core_leadership').isBoolean().withMessage('Core leadership must be a boolean value')
 ];
 
+const updateYearsOnTeamValidation = [
+  body('years_on_team').isInt({ min: 0, max: 20 }).withMessage('Years on team must be a number between 0 and 20')
+];
+
 // Configure multer for contract uploads
 const contractStorage = multer.diskStorage({
   destination: (req, _file, cb) => {
@@ -142,6 +146,7 @@ router.put('/users/:userId/contact-info', authenticate, updateUserContactInfoAdm
 router.get('/users/:userId/guardian-info', authenticate, getUserGuardianInfoAdmin);
 router.put('/users/:userId/guardian-info', authenticate, updateGuardianInfoValidation, updateUserGuardianInfoAdmin);
 router.put('/users/:userId/core-leadership', authenticate, updateCoreLeadershipValidation, updateCoreLeadership);
+router.put('/users/:userId/years-on-team', authenticate, updateYearsOnTeamValidation, updateYearsOnTeam);
 router.put('/users/:userId/registration-status', authenticate, statusValidation, updateUserRegistrationStatus);
 router.delete('/users/:userId', authenticate, deleteUser);
 

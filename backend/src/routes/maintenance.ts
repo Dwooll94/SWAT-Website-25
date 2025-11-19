@@ -854,4 +854,27 @@ router.put('/proposals/:id/:action', authenticate, async (req: AuthenticatedRequ
   }
 });
 
+// Admin endpoint to manually trigger registration reset and YOT increment
+router.post('/reset-registrations', authenticate, async (req: AuthenticatedRequest, res) => {
+  try {
+    const userId = req.user?.userId;
+
+    // Check if user is admin
+    const user = await pool.query('SELECT role FROM users WHERE id = $1', [userId]);
+    if (!user.rows[0] || user.rows[0].role !== 'admin') {
+      return res.status(403).json({ message: 'Access denied. Only administrators can reset registrations.' });
+    }
+
+    // Execute registration reset and YOT increment
+    await UserModel.resetAugustRegistrations();
+
+    res.json({
+      message: 'Student registrations reset to "contract_signed" and Years on Team incremented successfully'
+    });
+  } catch (error) {
+    console.error('Error resetting registrations:', error);
+    res.status(500).json({ message: 'Server error resetting registrations' });
+  }
+});
+
 export default router;

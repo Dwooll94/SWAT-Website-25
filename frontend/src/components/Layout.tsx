@@ -227,12 +227,24 @@ const Layout: React.FC = () => {
             {/* Roster for all signed-in users */}
             {user && (
               <li>
-                <Link 
-                  to="/roster" 
+                <Link
+                  to="/roster"
                   className="block px-4 py-3 rounded-lg hover:bg-swat-green transition-colors font-medium"
                   onClick={toggleSidebar}
                 >
                   Team Roster
+                </Link>
+              </li>
+            )}
+            {/* Outreach Leaderboard for all signed-in users */}
+            {user && (
+              <li>
+                <Link
+                  to="/outreach"
+                  className="block px-4 py-3 rounded-lg hover:bg-swat-green transition-colors font-medium"
+                  onClick={toggleSidebar}
+                >
+                  Outreach Leaderboard
                 </Link>
               </li>
             )}

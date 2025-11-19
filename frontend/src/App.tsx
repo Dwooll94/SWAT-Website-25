@@ -18,6 +18,7 @@ import MassEmail from './pages/MassEmail';
 import Maintenance from './pages/Maintenance';
 import RosterManagement from './pages/RosterManagement';
 import Roster from './pages/Roster';
+import OutreachLeaderboard from './pages/OutreachLeaderboard';
 import Unauthorized from './pages/Unauthorized';
 import VerifyEmail from './pages/VerifyEmail';
 import DynamicPage from './pages/DynamicPage';
@@ -113,6 +114,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <Roster />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/outreach"
+                element={
+                  <ProtectedRoute>
+                    <OutreachLeaderboard />
                   </ProtectedRoute>
                 }
               />

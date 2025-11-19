@@ -341,6 +341,38 @@ const AdminEditUserModal: React.FC<AdminEditUserModalProps> = ({
                   </span>
                 </div>
               )}
+              {user.role === 'student' && (
+                <div className="flex items-center">
+                  <span className="font-medium text-gray-700">Years on Team:</span>
+                  {currentUserRole === 'admin' ? (
+                    <input
+                      type="number"
+                      min="0"
+                      max="20"
+                      value={user.years_on_team || 0}
+                      onChange={async (e) => {
+                        const newValue = parseInt(e.target.value) || 0;
+                        try {
+                          await api.put(`/auth/users/${user.id}/years-on-team`, { years_on_team: newValue });
+                          setSuccessMessage(`Years on team updated to ${newValue}`);
+                          setTimeout(() => setSuccessMessage(''), 3000);
+                          // Refresh user data
+                          const response = await api.get('/auth/users');
+                          const updatedUser = response.data.find((u: any) => u.id === user.id);
+                          if (updatedUser) {
+                            Object.assign(user, updatedUser);
+                          }
+                        } catch (err) {
+                          setError('Failed to update years on team');
+                        }
+                      }}
+                      className="ml-2 w-16 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-swat-green"
+                    />
+                  ) : (
+                    <span className="ml-2">{user.years_on_team || 0}</span>
+                  )}
+                </div>
+              )}
               <div>
                 <span className="font-medium text-gray-700">{user.role === 'student' ? 'Guardians:' : 'Emergency Contacts:'}</span>
                 <span className="ml-2">{user.guardian_count}</span>
