@@ -581,6 +581,22 @@ const Register: React.FC = () => {
                   ))}
                 </div>
 
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <h4 className="font-semibold text-gray-900 mb-2">Privacy Notice</h4>
+                  <p className="text-sm text-gray-700 mb-2">
+                    By completing registration, you acknowledge that the information you provide will be used for:
+                  </p>
+                  <ul className="text-sm text-gray-700 space-y-1 list-disc list-inside mb-2">
+                    <li>Team management and communication on this website</li>
+                    <li>Providing access to team Slack workspace for collaboration</li>
+                    <li>Granting access to OnShape for CAD design work</li>
+                    <li>Registration with FIRST (For Inspiration and Recognition of Science and Technology)</li>
+                  </ul>
+                  <p className="text-sm text-gray-600">
+                    Your data will only be used for team-related purposes and will not be shared with third parties except as necessary for Slack, OnShape, and FIRST access. Guardian contact information may be used for team communications and emergency purposes.
+                  </p>
+                </div>
+
                 <div className="flex justify-between">
                   <button
                     type="button"

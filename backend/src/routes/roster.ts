@@ -10,6 +10,7 @@ interface StudentWithSubteams {
   last_name: string;
   email: string;
   graduation_year: number;
+  is_core_leadership: boolean;
   primary_subteam?: {
     id: number;
     name: string;
@@ -58,18 +59,22 @@ router.get('/management', authenticate, async (req: AuthenticatedRequest, res) =
         u.email,
         u.school_email,
         u.graduation_year,
-        
+        CASE
+          WHEN sa.attribute_value = 'true' THEN true
+          ELSE false
+        END as is_core_leadership,
+
         -- Primary subteam info
         primary_st.id as primary_subteam_id,
         primary_st.name as primary_subteam_name,
         primary_ss.is_captain as is_primary_captain,
-        
+
         -- All subteam assignments (will be aggregated)
         ss.subteam_id as assigned_subteam_id,
         s.name as assigned_subteam_name,
         ss.is_primary as assignment_is_primary,
         ss.is_captain as assignment_is_captain,
-        
+
         -- Preferences (will be aggregated)
         usp.subteam_id as preference_subteam_id,
         pref_s.name as preference_subteam_name,
@@ -82,6 +87,7 @@ router.get('/management', authenticate, async (req: AuthenticatedRequest, res) =
       LEFT JOIN subteams primary_st ON primary_ss.subteam_id = primary_st.id
       LEFT JOIN user_subteam_preferences usp ON u.id = usp.user_id
       LEFT JOIN subteams pref_s ON usp.subteam_id = pref_s.id AND pref_s.is_active = true
+      LEFT JOIN student_attributes sa ON u.id = sa.user_id AND sa.attribute_key = 'isCoreLeadership'
 
       WHERE u.role = 'student' AND u.is_active = true
       ORDER BY u.first_name, u.last_name
@@ -98,6 +104,7 @@ router.get('/management', authenticate, async (req: AuthenticatedRequest, res) =
           last_name: row.last_name,
           email: row.school_email? row.school_email : row.email,
           graduation_year: row.graduation_year,
+          is_core_leadership: row.is_core_leadership || false,
           primary_subteam: row.primary_subteam_id ? {
             id: row.primary_subteam_id,
             name: row.primary_subteam_name,
@@ -160,26 +167,74 @@ router.get('/management', authenticate, async (req: AuthenticatedRequest, res) =
 // Get public roster (all signed-in users can see)
 router.get('/public', authenticate, async (req: AuthenticatedRequest, res) => {
   try {
-    // Get students organized by primary subteam
+    // Get students with both primary and secondary subteams
     const result = await pool.query(`
-      SELECT 
+      SELECT DISTINCT
         u.id,
         u.first_name,
         u.last_name,
         u.graduation_year,
-        
+        CASE
+          WHEN sa.attribute_value = 'true' THEN true
+          ELSE false
+        END as is_core_leadership,
+
         -- Primary subteam
         primary_st.id as primary_subteam_id,
         primary_st.name as primary_subteam_name,
-        primary_ss.is_captain as is_captain
-        
+        primary_ss.is_captain as is_primary_captain,
+
+        -- All subteam assignments (for secondary subteams)
+        ss.subteam_id as assigned_subteam_id,
+        s.name as assigned_subteam_name,
+        ss.is_primary as assignment_is_primary,
+        ss.is_captain as assignment_is_captain
+
       FROM users u
       LEFT JOIN student_subteams primary_ss ON u.id = primary_ss.user_id AND primary_ss.is_primary = true
       LEFT JOIN subteams primary_st ON primary_ss.subteam_id = primary_st.id AND primary_st.is_active = true
-      
+      LEFT JOIN student_attributes sa ON u.id = sa.user_id AND sa.attribute_key = 'isCoreLeadership'
+      LEFT JOIN student_subteams ss ON u.id = ss.user_id
+      LEFT JOIN subteams s ON ss.subteam_id = s.id AND s.is_active = true
+
       WHERE u.role = 'student' AND u.is_active = true
       ORDER BY primary_st.display_order NULLS LAST, primary_st.name NULLS LAST, u.first_name, u.last_name
     `);
+
+    // Transform the flat result into structured data
+    const studentsMap = new Map<string, any>();
+
+    for (const row of result.rows) {
+      if (!studentsMap.has(row.id)) {
+        studentsMap.set(row.id, {
+          id: row.id,
+          first_name: row.first_name,
+          last_name: row.last_name,
+          graduation_year: row.graduation_year,
+          is_core_leadership: row.is_core_leadership || false,
+          primary_subteam_id: row.primary_subteam_id,
+          primary_subteam_name: row.primary_subteam_name,
+          is_captain: row.is_primary_captain || false,
+          secondary_subteams: []
+        });
+      }
+
+      const student = studentsMap.get(row.id)!;
+
+      // Add secondary subteam assignments
+      if (row.assigned_subteam_id && !row.assignment_is_primary) {
+        const existing = student.secondary_subteams.find((st: any) => st.id === row.assigned_subteam_id);
+        if (!existing) {
+          student.secondary_subteams.push({
+            id: row.assigned_subteam_id,
+            name: row.assigned_subteam_name,
+            is_captain: row.assignment_is_captain || false
+          });
+        }
+      }
+    }
+
+    const students = Array.from(studentsMap.values());
 
     // Get all subteams
     const subteamsResult = await pool.query(
@@ -187,7 +242,7 @@ router.get('/public', authenticate, async (req: AuthenticatedRequest, res) => {
     );
 
     res.json({
-      students: result.rows,
+      students,
       subteams: subteamsResult.rows
     });
   } catch (error) {

@@ -18,6 +18,12 @@ interface PublicStudent {
   primary_subteam_id?: number;
   primary_subteam_name?: string;
   is_captain: boolean;
+  is_core_leadership: boolean;
+  secondary_subteams: {
+    id: number;
+    name: string;
+    is_captain: boolean;
+  }[];
 }
 
 interface PublicRosterData {
@@ -156,7 +162,13 @@ const Roster: React.FC = () => {
                     )}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                       {subteamStudents
-                        .sort((a, b) => `${a.first_name} ${a.last_name}`.localeCompare(`${b.first_name} ${b.last_name}`))
+                        .sort((a, b) => {
+                          // Sort captains to the top first
+                          if (a.is_captain && !b.is_captain) return -1;
+                          if (!a.is_captain && b.is_captain) return 1;
+                          // Then sort alphabetically by name
+                          return `${a.first_name} ${a.last_name}`.localeCompare(`${b.first_name} ${b.last_name}`);
+                        })
                         .map((student) => (
                           <div
                             key={student.id}
@@ -171,11 +183,18 @@ const Roster: React.FC = () => {
                                   Class of {student.graduation_year}
                                 </p>
                               </div>
-                              {student.is_captain && (
-                                <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs font-medium">
-                                  Captain
-                                </span>
-                              )}
+                              <div className="flex flex-col gap-1">
+                                {student.is_captain && (
+                                  <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs font-medium">
+                                    Captain
+                                  </span>
+                                )}
+                                {student.is_core_leadership && (
+                                  <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded-full text-xs font-medium">
+                                    Core
+                                  </span>
+                                )}
+                              </div>
                             </div>
                           </div>
                         ))}
@@ -183,6 +202,73 @@ const Roster: React.FC = () => {
                   </div>
                 );
               })}
+
+            {/* Strategy Subteam (secondary subteam) */}
+            {(() => {
+              const strategySubteam = rosterData?.subteams.find(s => s.name.toLowerCase() === 'strategy' && s.is_active);
+              if (!strategySubteam) return null;
+
+              const strategyStudents = rosterData.students.filter(student =>
+                student.secondary_subteams?.some(st => st.id === strategySubteam.id)
+              );
+
+              if (strategyStudents.length === 0) return null;
+
+              return (
+                <div className="bg-white rounded-lg shadow-md p-6">
+                  <h2 className="text-2xl font-impact text-swat-black mb-4 uppercase">
+                    {strategySubteam.name}
+                  </h2>
+                  {strategySubteam.description && (
+                    <p className="text-gray-600 mb-4">{strategySubteam.description}</p>
+                  )}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {strategyStudents
+                      .sort((a, b) => {
+                        // Sort captains to the top first
+                        const aIsStrategyCaptain = a.secondary_subteams.find(st => st.id === strategySubteam.id)?.is_captain;
+                        const bIsStrategyCaptain = b.secondary_subteams.find(st => st.id === strategySubteam.id)?.is_captain;
+                        if (aIsStrategyCaptain && !bIsStrategyCaptain) return -1;
+                        if (!aIsStrategyCaptain && bIsStrategyCaptain) return 1;
+                        // Then sort alphabetically by name
+                        return `${a.first_name} ${a.last_name}`.localeCompare(`${b.first_name} ${b.last_name}`);
+                      })
+                      .map((student) => {
+                        const strategyAssignment = student.secondary_subteams.find(st => st.id === strategySubteam.id);
+                        return (
+                          <div
+                            key={student.id}
+                            className="bg-gray-50 rounded-lg p-4 border-l-4 border-swat-green"
+                          >
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <h3 className="font-semibold text-gray-900">
+                                  {student.first_name} {student.last_name}
+                                </h3>
+                                <p className="text-sm text-gray-600">
+                                  Class of {student.graduation_year}
+                                </p>
+                              </div>
+                              <div className="flex flex-col gap-1">
+                                {strategyAssignment?.is_captain && (
+                                  <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs font-medium">
+                                    Captain
+                                  </span>
+                                )}
+                                {student.is_core_leadership && (
+                                  <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded-full text-xs font-medium">
+                                    Core
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* Students without subteam assignment */}
             {getStudentsWithoutSubteam().length > 0 && (
@@ -230,7 +316,13 @@ const Roster: React.FC = () => {
                   {students.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                       {students
-                        .sort((a, b) => `${a.first_name} ${a.last_name}`.localeCompare(`${b.first_name} ${b.last_name}`))
+                        .sort((a, b) => {
+                          // Sort captains to the top first
+                          if (a.is_captain && !b.is_captain) return -1;
+                          if (!a.is_captain && b.is_captain) return 1;
+                          // Then sort alphabetically by name
+                          return `${a.first_name} ${a.last_name}`.localeCompare(`${b.first_name} ${b.last_name}`);
+                        })
                         .map((student) => (
                           <div
                             key={student.id}
@@ -245,11 +337,18 @@ const Roster: React.FC = () => {
                                   Class of {student.graduation_year}
                                 </p>
                               </div>
-                              {student.is_captain && (
-                                <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs font-medium">
-                                  Captain
-                                </span>
-                              )}
+                              <div className="flex flex-col gap-1">
+                                {student.is_captain && (
+                                  <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs font-medium">
+                                    Captain
+                                  </span>
+                                )}
+                                {student.is_core_leadership && (
+                                  <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded-full text-xs font-medium">
+                                    Core
+                                  </span>
+                                )}
+                              </div>
                             </div>
                           </div>
                         ))}

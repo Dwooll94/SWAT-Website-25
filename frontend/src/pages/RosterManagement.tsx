@@ -16,6 +16,7 @@ interface StudentWithSubteams {
   last_name: string;
   email: string;
   graduation_year: number;
+  is_core_leadership: boolean;
   primary_subteam?: {
     id: number;
     name: string;
@@ -191,9 +192,16 @@ const RosterManagement: React.FC = () => {
                     <div key={student.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
                       <div className="flex justify-between items-start mb-3">
                         <div>
-                          <h3 className="font-semibold text-lg text-gray-900">
-                            {student.first_name} {student.last_name}
-                          </h3>
+                          <div className="flex items-center gap-2 mb-1">
+                            <h3 className="font-semibold text-lg text-gray-900">
+                              {student.first_name} {student.last_name}
+                            </h3>
+                            {student.is_core_leadership && (
+                              <span className="bg-purple-100 text-purple-800 px-2 py-0.5 rounded-full text-xs font-medium">
+                                Core
+                              </span>
+                            )}
+                          </div>
                           <p className="text-sm text-gray-600">{student.email}</p>
                           <p className="text-sm text-gray-500">Class of {student.graduation_year}</p>
                         </div>

@@ -102,6 +102,22 @@ const FirstSignupModal: React.FC<FirstSignupModalProps> = ({
             </div>
           </div>
 
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+            <h4 className="font-semibold text-gray-900 mb-2">Privacy Reminder</h4>
+            <p className="text-sm text-gray-700 mb-2">
+              Your registration data is used for:
+            </p>
+            <ul className="text-sm text-gray-700 space-y-1 list-disc list-inside">
+              <li>Team management and communication on this website</li>
+              <li>Providing access to team Slack workspace for collaboration</li>
+              <li>Granting access to OnShape for CAD design work</li>
+              <li>Registration with FIRST (For Inspiration and Recognition of Science and Technology)</li>
+            </ul>
+            <p className="text-sm text-gray-600 mt-2">
+              Your data is only used for team-related purposes and is not shared with third parties except as necessary for Slack, OnShape, and FIRST access.
+            </p>
+          </div>
+
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="border-2 border-swat-green rounded-lg p-4">
               <label className="flex items-start space-x-3 cursor-pointer">
@@ -115,8 +131,8 @@ const FirstSignupModal: React.FC<FirstSignupModalProps> = ({
                   className="mt-1 w-4 h-4 text-swat-green border-2 border-gray-300 rounded focus:ring-swat-green"
                 />
                 <span className="text-sm text-gray-800 leading-relaxed">
-                  I, <strong>{userName}</strong>, certify that I have signed up for 
-                  <strong> FRC Team 1806</strong> in FIRST's system and that my parents have 
+                  I, <strong>{userName}</strong>, certify that I have signed up for
+                  <strong> FRC Team 1806</strong> in FIRST's system and that my parents have
                   signed the consent and release forms.
                 </span>
               </label>
