@@ -374,11 +374,28 @@ const OutreachLeaderboard: React.FC = () => {
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                      {leaderboard.map((entry, index) => (
-                        <tr key={entry.user_id} className={index === 0 ? 'bg-yellow-50' : index === 1 ? 'bg-gray-50' : ''}>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                            {index === 0 ? '🏆' : index === 1 ? '🥈' : index + 1}
-                          </td>
+                      {leaderboard.map((entry, index) => {
+                        // Calculate rank considering ties
+                        let rank = 1;
+                        for (let i = 0; i < index; i++) {
+                          if (leaderboard[i].total_points !== entry.total_points) {
+                            rank = i + 2; // +2 because we want rank after all previous different scores
+                          }
+                        }
+
+                        // Determine if this is truly rank 1 or rank 2 for medal display
+                        const actualRank = index === 0 ? 1 :
+                                          (leaderboard[0].total_points === entry.total_points ? 1 :
+                                           (index === 1 || (index > 1 && leaderboard[1].total_points === entry.total_points) ? 2 : rank));
+
+                        const isFirstPlace = actualRank === 1;
+                        const isSecondPlace = actualRank === 2 && leaderboard[0].total_points !== entry.total_points;
+
+                        return (
+                          <tr key={entry.user_id} className={isFirstPlace ? 'bg-yellow-50' : isSecondPlace ? 'bg-gray-50' : ''}>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                              {isFirstPlace ? '🏆' : isSecondPlace ? '🥈' : rank}
+                            </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm font-medium text-gray-900">
                               {entry.first_name} {entry.last_name}
@@ -415,7 +432,8 @@ const OutreachLeaderboard: React.FC = () => {
                             )}
                           </td>
                         </tr>
-                      ))}
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
