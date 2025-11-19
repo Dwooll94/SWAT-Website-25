@@ -182,6 +182,7 @@ router.get('/public', authenticate, async (req: AuthenticatedRequest, res) => {
         -- Primary subteam
         primary_st.id as primary_subteam_id,
         primary_st.name as primary_subteam_name,
+        primary_st.display_order as primary_subteam_display_order,
         primary_ss.is_captain as is_primary_captain,
 
         -- All subteam assignments (for secondary subteams)
@@ -198,7 +199,7 @@ router.get('/public', authenticate, async (req: AuthenticatedRequest, res) => {
       LEFT JOIN subteams s ON ss.subteam_id = s.id AND s.is_active = true
 
       WHERE u.role = 'student' AND u.is_active = true
-      ORDER BY primary_st.display_order NULLS LAST, primary_st.name NULLS LAST, u.first_name, u.last_name
+      ORDER BY primary_subteam_display_order NULLS LAST, primary_subteam_name NULLS LAST, u.first_name, u.last_name
     `);
 
     // Transform the flat result into structured data
