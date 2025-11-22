@@ -450,4 +450,35 @@ router.get('/students', authenticate, async (req: AuthenticatedRequest, res) => 
   }
 });
 
+// Reset entire outreach leaderboard (admin only)
+router.post('/reset-leaderboard', authenticate, async (req: AuthenticatedRequest, res) => {
+  try {
+    const userId = req.user?.userId;
+
+    // Check if user is admin
+    const userCheck = await pool.query(
+      'SELECT role FROM users WHERE id = $1',
+      [userId]
+    );
+
+    const user = userCheck.rows[0];
+    if (!user || user.role !== 'admin') {
+      return res.status(403).json({ message: 'Access denied. Only administrators can reset the leaderboard.' });
+    }
+
+    // Delete all participation records first (due to foreign key)
+    await pool.query('DELETE FROM student_outreach_participation');
+
+    // Delete all events
+    await pool.query('DELETE FROM outreach_events');
+
+    res.json({
+      message: 'Outreach leaderboard has been completely reset. All events and participation records have been deleted.'
+    });
+  } catch (error) {
+    console.error('Error resetting leaderboard:', error);
+    res.status(500).json({ message: 'Server error resetting leaderboard' });
+  }
+});
+
 export default router;

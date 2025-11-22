@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../contexts/AuthContext';
 import { extractRankingPoints, getTeamRankingPoints } from '../utils/scoringUtils';
+import { randomInt } from 'crypto';
 
 interface EventSummary {
   event: {
@@ -93,13 +94,53 @@ const PitDisplay: React.FC = () => {
   const [streamVisible, setStreamVisible] = useState(false);
   const streamContainerRef = React.useRef<HTMLDivElement>(null);
 
+  // Easter egg state
+  const [keySequence, setKeySequence] = useState<string[]>([]);
+  const [testDataActive, setTestDataActive] = useState(false);
+
   useEffect(() => {
-    fetchEventData();
-    
-    // Set up polling for updates every 30 seconds during events
-    const interval = setInterval(fetchEventData, 30000);
-    return () => clearInterval(interval);
-  }, []);
+    if (!testDataActive) {
+      fetchEventData();
+
+      // Set up polling for updates every 30 seconds during events (but not when test data is active)
+      const interval = setInterval(fetchEventData, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [testDataActive]);
+
+  // Easter egg: Ctrl + 1806 key sequence
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey && ['1', '8', '0', '6'].includes(e.key)) {
+        setKeySequence(prev => {
+          const newSequence = [...prev, e.key];
+
+          // Check if sequence matches 1-8-0-6
+          if (newSequence.length > 4) {
+            return [e.key]; // Reset if too long
+          }
+
+          // Check for complete sequence
+          if (newSequence.length === 4 &&
+              newSequence[0] === '1' &&
+              newSequence[1] === '8' &&
+              newSequence[2] === '0' &&
+              newSequence[3] === '6') {
+            toggleTestData();
+            return [];
+          }
+
+          return newSequence;
+        });
+      } else if (!e.ctrlKey && keySequence.length > 0) {
+        // Reset if Ctrl is released
+        setKeySequence([]);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [keySequence]);
 
   // Intersection observer to detect when stream container is visible
   useEffect(() => {
@@ -131,6 +172,8 @@ const PitDisplay: React.FC = () => {
   }, [eventSummary]); // Re-run when eventSummary changes
 
   const fetchEventData = async () => {
+    if (testDataActive) return; // Don't fetch if test data is active
+
     try {
       const [summaryResponse, scheduleResponse] = await Promise.all([
         api.get('/events/summary'),
@@ -148,6 +191,126 @@ const PitDisplay: React.FC = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const toggleTestData = () => {
+    if (testDataActive) {
+      // Deactivate test data and resume normal operation
+      setTestDataActive(false);
+      setEventSummary(null);
+      setMatchSchedule([]);
+      setStreamVisible(false);
+      setLoading(true);
+      // fetchEventData will be called by useEffect when testDataActive changes
+      return;
+    }
+
+    // Activate test data
+    setTestDataActive(true);
+    setLoading(false);
+    setStreamVisible(true);
+
+    
+
+    
+    const randomInt = (min: number, max: number) =>
+    Math.floor(Math.random() * (max - min + 1)) + min;
+    var lastMatch = 1;
+    const matchProgress = randomInt(0, 9); //not actual matches, just hours
+    var firstMatchTime = (Date.now() / 1000) - (matchProgress * 2400);
+    var nextMatchTime = firstMatchTime;
+    var hitCurrentTime = false;
+    var summaryNextMatch = 0;
+    var summaryLastMatch = 0;
+    var summaryMatchProgress = 0;
+    // Generate test match schedule (alternate 1806 between red and blue)
+    const testMatches: EventMatch[] = [];
+    for (let i = 1; i <= 10; i++) {
+      const is1806OnRed = i % 2 === 1; // Odd matches on red, even matches on blue
+      var matchGap = randomInt(3, 16);
+      var currentMatch = lastMatch + matchGap;
+      var nextMatchTime = nextMatchTime + matchGap * randomInt(420, 600);
+      const hasScore = nextMatchTime < (Date.now() / 1000); // Only matches before current time have been completed
+      if(!hitCurrentTime && !hasScore){
+        summaryNextMatch = currentMatch;
+        summaryLastMatch = lastMatch;
+        summaryMatchProgress = i;
+        hitCurrentTime = true;
+      }
+      lastMatch = currentMatch;
+      testMatches.push({
+        match_key: `2024test_qm${i}`,
+        comp_level: 'qm',
+        match_number: currentMatch,
+        time: nextMatchTime,
+        red_alliance: {
+          team_keys: is1806OnRed
+            ? ['frc1806', 'frc254', 'frc1678']
+            : ['frc973', 'frc1114', 'frc118'],
+          score: hasScore ? (is1806OnRed ? 180 : 106) : undefined
+          
+        },
+        blue_alliance: {
+          team_keys: is1806OnRed
+            ? ['frc973', 'frc1114', 'frc118']
+            : ['frc1806', 'frc254', 'frc1678'],
+          score: hasScore ? (is1806OnRed ? 106 : 180) : undefined
+        },
+        winning_alliance: hasScore ? (is1806OnRed ? 'red' : 'blue') : undefined
+      });
+    }
+    setMatchSchedule(testMatches);
+
+    // Generate test event data
+    setEventSummary({
+      event: {
+        event_key: '2024test',
+        name: 'Test Event - Electric Zoo',
+        event_code: 'test',
+        city: 'Zoo City',
+        state_prov: 'MO',
+        start_date: new Date().toISOString().split('T')[0],
+        end_date: new Date().toISOString().split('T')[0],
+        year: new Date().getFullYear(),
+        webcasts: [
+          {
+            type: 'youtube',
+            channel: 'uDPbvlQq3BQ' // 10 hours of electric zoo
+          }
+        ]
+      },
+      teamStatus: {
+        qual_ranking: 1,
+        qual_avg: 5.1806,
+        qual_record: { wins: summaryMatchProgress-1, losses: 0, ties: 0 },
+        playoff_alliance: 1,
+        playoff_status: 'won',
+        overall_status_str: '🎉 Event Winner!',
+        opr: 180.6,
+        dpr: 18.06,
+        ccwm: 1806
+      },
+      teamKey: 'frc1806',
+      teamNumber: '1806',
+      nextMatch: testMatches.at(summaryMatchProgress-1)
+      ,
+      lastMatch: {
+        match_key: ((testMatches.at(summaryMatchProgress-2)?.match_key) || "oops"),
+        comp_level: 'qm',
+        match_number: summaryLastMatch,
+        winning_alliance: 'red',
+        red_alliance: {
+          team_keys: ((testMatches.at(summaryMatchProgress-2)?.red_alliance.team_keys || ['frc1806', 'frc254', 'frc1678'])),
+          score: ((testMatches.at(summaryMatchProgress-2)?.red_alliance.score) || 180)
+        },
+        blue_alliance: {
+          team_keys: ((testMatches.at(summaryMatchProgress-2)?.blue_alliance.team_keys || ['frc973', 'frc1114', 'frc118'])),
+          score: ((testMatches.at(summaryMatchProgress-2)?.blue_alliance.score) || 106)
+        }
+      },
+      turnaroundTime: Math.floor(((testMatches.at(summaryMatchProgress)?.time || 0)) - (testMatches.at(summaryMatchProgress-1)?.time || 0)),
+      turnaroundAllianceColor: (testMatches.at(summaryMatchProgress)?.blue_alliance.team_keys.includes('frc1806') ? 'blue' : 'red')
+    });
   };
 
   const formatTime = (timestamp?: number) => {
@@ -399,10 +562,21 @@ const PitDisplay: React.FC = () => {
             <div className="bg-gray-800 rounded-lg p-4">
               <h3 className="text-lg font-bold text-swat-green mb-3">Next Match</h3>
               <div className="mb-2">
-                <span className="text-xl font-bold">
+                <span className="text-xl font-bold inline-flex items-center gap-2">
                   {(() => {
                     const actualMatchNum = getActualMatchNumber(nextMatch.match_key, nextMatch.comp_level, nextMatch.match_number);
                     return getCompLevelDisplay(nextMatch.comp_level, actualMatchNum) + getMatchDisplayNumber(nextMatch.comp_level, actualMatchNum);
+                  })()}
+                  {(() => {
+                    const teamKey = eventSummary?.teamKey || 'frc1806';
+                    const isOnRed = nextMatch.red_alliance.team_keys?.includes(teamKey);
+                    const isOnBlue = nextMatch.blue_alliance.team_keys?.includes(teamKey);
+                    if (isOnRed) {
+                      return <div className="w-3 h-3 bg-red-500 rounded-full"></div>;
+                    } else if (isOnBlue) {
+                      return <div className="w-3 h-3 bg-blue-500 rounded-full"></div>;
+                    }
+                    return null;
                   })()}
                 </span>
               </div>
@@ -444,10 +618,21 @@ const PitDisplay: React.FC = () => {
             <div className="bg-gray-800 rounded-lg p-4">
               <h3 className="text-lg font-bold text-swat-green mb-3">Last Match</h3>
               <div className="mb-2">
-                <span className="text-xl font-bold">
+                <span className="text-xl font-bold inline-flex items-center gap-2">
                   {(() => {
                     const actualMatchNum = getActualMatchNumber(lastMatch.match_key, lastMatch.comp_level, lastMatch.match_number);
                     return getCompLevelDisplay(lastMatch.comp_level, actualMatchNum) + getMatchDisplayNumber(lastMatch.comp_level, actualMatchNum);
+                  })()}
+                  {(() => {
+                    const teamKey = eventSummary?.teamKey || 'frc1806';
+                    const isOnRed = lastMatch.red_alliance.team_keys?.includes(teamKey);
+                    const isOnBlue = lastMatch.blue_alliance.team_keys?.includes(teamKey);
+                    if (isOnRed) {
+                      return <div className="w-3 h-3 bg-red-500 rounded-full"></div>;
+                    } else if (isOnBlue) {
+                      return <div className="w-3 h-3 bg-blue-500 rounded-full"></div>;
+                    }
+                    return null;
                   })()}
                 </span>
               </div>

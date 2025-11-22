@@ -259,6 +259,45 @@ const OutreachLeaderboard: React.FC = () => {
     fetchParticipants(eventId);
   };
 
+  const handleResetLeaderboard = async () => {
+    if (!window.confirm(
+      '⚠️ WARNING: This will permanently delete ALL outreach events and participation records.\n\n' +
+      'This action CANNOT be undone!\n\n' +
+      'Are you absolutely sure you want to reset the entire outreach leaderboard?'
+    )) {
+      return;
+    }
+
+    // Second confirmation
+    if (!window.confirm(
+      'This is your final confirmation.\n\n' +
+      'Type YES in the next prompt to proceed with deleting all outreach data.'
+    )) {
+      return;
+    }
+
+    const confirmation = window.prompt('Type YES in all caps to confirm deletion:');
+    if (confirmation !== 'YES') {
+      setError('Reset cancelled. You must type YES to confirm.');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError('');
+      await api.post('/outreach/reset-leaderboard');
+      setSuccessMessage('Outreach leaderboard has been completely reset!');
+      setSelectedEvent(null);
+      setParticipants([]);
+      fetchEvents();
+      fetchLeaderboard();
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to reset leaderboard');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (loading && leaderboard.length === 0) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -450,18 +489,29 @@ const OutreachLeaderboard: React.FC = () => {
             <div className="space-y-6">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-semibold text-gray-900">Outreach Events</h2>
-                <button
-                  onClick={() => {
-                    if (showEventForm) {
-                      handleCancelEventForm();
-                    } else {
-                      setShowEventForm(true);
-                    }
-                  }}
-                  className="bg-swat-green text-white px-4 py-2 rounded hover:bg-green-600 transition-colors"
-                >
-                  {showEventForm ? 'Cancel' : 'Create Event'}
-                </button>
+                <div className="flex gap-2">
+                  {user?.role === 'admin' && (
+                    <button
+                      onClick={handleResetLeaderboard}
+                      className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition-colors"
+                      disabled={loading}
+                    >
+                      Reset Leaderboard
+                    </button>
+                  )}
+                  <button
+                    onClick={() => {
+                      if (showEventForm) {
+                        handleCancelEventForm();
+                      } else {
+                        setShowEventForm(true);
+                      }
+                    }}
+                    className="bg-swat-green text-white px-4 py-2 rounded hover:bg-green-600 transition-colors"
+                  >
+                    {showEventForm ? 'Cancel' : 'Create Event'}
+                  </button>
+                </div>
               </div>
 
               {/* Event Creation/Edit Form */}
