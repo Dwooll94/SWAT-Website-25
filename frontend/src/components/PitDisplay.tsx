@@ -212,15 +212,29 @@ const PitDisplay: React.FC = () => {
 
     
 
-    
+
     const randomInt = (min: number, max: number) =>
     Math.floor(Math.random() * (max - min + 1)) + min;
+
+    // Pool of alliance partner teams
+    const allianceTeams = ['frc254', 'frc1678', 'frc973', 'frc1114', 'frc118', 'frc1987', 'frc1986', 'frc1730', 'frc1710', 'frc4522', 'frc2345', 'frc2457'];
+    const opponentTeams = ['frc254', 'frc1678', 'frc973', 'frc1114', 'frc118', 'frc1987', 'frc1986', 'frc1730', 'frc1710', 'frc4522', 'frc2345', 'frc2457'];
+
+    // Shuffle array helper
+    const shuffleArray = <T,>(array: T[]): T[] => {
+      const arr = [...array];
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    };
+
     var lastMatch = 1;
     const matchProgress = randomInt(0, 9); //not actual matches, just hours
     var firstMatchTime = (Date.now() / 1000) - (matchProgress * 2400);
     var nextMatchTime = firstMatchTime;
     var hitCurrentTime = false;
-    var summaryNextMatch = 0;
     var summaryLastMatch = 0;
     var summaryMatchProgress = 0;
     // Generate test match schedule (alternate 1806 between red and blue)
@@ -232,12 +246,18 @@ const PitDisplay: React.FC = () => {
       var nextMatchTime = nextMatchTime + matchGap * randomInt(420, 600);
       const hasScore = nextMatchTime < (Date.now() / 1000); // Only matches before current time have been completed
       if(!hitCurrentTime && !hasScore){
-        summaryNextMatch = currentMatch;
         summaryLastMatch = lastMatch;
         summaryMatchProgress = i;
         hitCurrentTime = true;
       }
       lastMatch = currentMatch;
+
+      // Generate alliance partners and opponents
+      const shuffledAllies = shuffleArray(allianceTeams);
+      const shuffledOpponents = shuffleArray(opponentTeams);
+      const alliancePartners = shuffledAllies.slice(0, 2);
+      const opponents = shuffledOpponents.slice(0, 3);
+
       testMatches.push({
         match_key: `2024test_qm${i}`,
         comp_level: 'qm',
@@ -245,18 +265,32 @@ const PitDisplay: React.FC = () => {
         time: nextMatchTime,
         red_alliance: {
           team_keys: is1806OnRed
-            ? ['frc1806', 'frc254', 'frc1678']
-            : ['frc973', 'frc1114', 'frc118'],
+            ? ['frc1806', ...alliancePartners]
+            : opponents,
           score: hasScore ? (is1806OnRed ? 180 : 106) : undefined
-          
+
         },
         blue_alliance: {
           team_keys: is1806OnRed
-            ? ['frc973', 'frc1114', 'frc118']
-            : ['frc1806', 'frc254', 'frc1678'],
+            ? opponents
+            : ['frc1806', ...alliancePartners],
           score: hasScore ? (is1806OnRed ? 106 : 180) : undefined
         },
-        winning_alliance: hasScore ? (is1806OnRed ? 'red' : 'blue') : undefined
+        winning_alliance: hasScore ? (is1806OnRed ? 'red' : 'blue') : undefined,
+        score_breakdown: hasScore ? {
+          red: {
+            rp: is1806OnRed ? (i % 3 === 0 ? 3 : 2) : (i % 4 === 0 ? 2 : 1),
+            bargeBonusAchieved: is1806OnRed ? (i % 2 === 0) : (i % 5 === 0),
+            coralBonusAchieved: is1806OnRed ? true : (i % 3 === 0),
+            autoBonusAchieved: is1806OnRed ? (i % 3 === 0) : (i % 4 === 0)
+          },
+          blue: {
+            rp: is1806OnRed ? (i % 4 === 0 ? 2 : 1) : (i % 3 === 0 ? 3 : 2),
+            bargeBonusAchieved: is1806OnRed ? (i % 5 === 0) : (i % 2 === 0),
+            coralBonusAchieved: is1806OnRed ? (i % 3 === 0) : true,
+            autoBonusAchieved: is1806OnRed ? (i % 4 === 0) : (i % 3 === 0)
+          }
+        } : undefined
       });
     }
     setMatchSchedule(testMatches);
@@ -264,14 +298,14 @@ const PitDisplay: React.FC = () => {
     // Generate test event data
     setEventSummary({
       event: {
-        event_key: '2024test',
+        event_key: '2025test',
         name: 'Test Event - Electric Zoo',
         event_code: 'test',
         city: 'Zoo City',
         state_prov: 'MO',
         start_date: new Date().toISOString().split('T')[0],
         end_date: new Date().toISOString().split('T')[0],
-        year: new Date().getFullYear(),
+        year: 2025,
         webcasts: [
           {
             type: 'youtube',
@@ -298,7 +332,7 @@ const PitDisplay: React.FC = () => {
         match_key: ((testMatches.at(summaryMatchProgress-2)?.match_key) || "oops"),
         comp_level: 'qm',
         match_number: summaryLastMatch,
-        winning_alliance: 'red',
+        winning_alliance: testMatches.at(summaryMatchProgress-2)?.red_alliance.team_keys.includes('frc1806')?'red':'blue',
         red_alliance: {
           team_keys: ((testMatches.at(summaryMatchProgress-2)?.red_alliance.team_keys || ['frc1806', 'frc254', 'frc1678'])),
           score: ((testMatches.at(summaryMatchProgress-2)?.red_alliance.score) || 180)
@@ -306,6 +340,20 @@ const PitDisplay: React.FC = () => {
         blue_alliance: {
           team_keys: ((testMatches.at(summaryMatchProgress-2)?.blue_alliance.team_keys || ['frc973', 'frc1114', 'frc118'])),
           score: ((testMatches.at(summaryMatchProgress-2)?.blue_alliance.score) || 106)
+        },
+        score_breakdown: {
+          red: {
+            rp: 3,
+            bargeBonusAchieved: true,
+            coralBonusAchieved: true,
+            autoBonusAchieved: false
+          },
+          blue: {
+            rp: 1,
+            bargeBonusAchieved: false,
+            coralBonusAchieved: false,
+            autoBonusAchieved: true
+          }
         }
       },
       turnaroundTime: Math.floor(((testMatches.at(summaryMatchProgress)?.time || 0)) - (testMatches.at(summaryMatchProgress-1)?.time || 0)),
@@ -445,31 +493,14 @@ const PitDisplay: React.FC = () => {
   const { event, teamStatus, nextMatch, lastMatch, teamNumber, turnaroundTime, turnaroundAllianceColor } = eventSummary;
 
   return (
-    <div className="bg-swat-black text-swat-white p-6 min-h-screen w-full">
-      {/* Event Header */}
-      <div className="flex justify-between items-start mb-6">
-        <div>
-          <h2 className="text-2xl font-impact text-swat-green mb-1">
-            LIVE: {event.name}
-          </h2>
-          <p className="text-gray-300">
-            {event.city}, {event.state_prov} • Team {teamNumber}
-          </p>
-        </div>
-        <div className="text-right">
-          <div className="bg-red-600 text-white px-3 py-1 rounded-full text-sm font-bold animate-pulse">
-            LIVE
-          </div>
-        </div>
-      </div>
-
+    <div className="bg-swat-black text-swat-white p-4 min-h-screen w-full">
       {/* Main Content Grid - Stream on left, Info boxes on right */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-4 mb-4">
         {/* Stream Section */}
-        <div className="lg:col-span-2">
+        <div className="space-y-3">
           {event.webcasts && event.webcasts.length > 0 && (
             <div ref={streamContainerRef}>
-              <div className="aspect-video bg-gray-800 rounded-lg overflow-hidden max-h-[60svh]">
+              <div className="aspect-video bg-gray-800 rounded-lg overflow-hidden max-h-[70vh]">
                 {!streamVisible ? (
                   <div className="flex items-center justify-center h-full text-gray-400">
                     <div className="text-center">
@@ -508,48 +539,67 @@ const PitDisplay: React.FC = () => {
         </div>
 
         {/* Info Boxes Section */}
-        <div className="space-y-6">
+        <div className="space-y-3">
+          {/* Event Header at top of right column */}
+          <div className="bg-gray-800 rounded-lg p-3">
+            <div className="flex justify-between items-center mb-2">
+              <h2 className="text-xl font-impact text-swat-green">
+                {event.name}
+              </h2>
+              <div className="bg-red-600 text-white px-3 py-1 rounded-full text-sm font-bold animate-pulse">
+                LIVE
+              </div>
+            </div>
+            <div className="text-sm text-gray-300">
+              {event.city}, {event.state_prov} • Team {teamNumber}
+            </div>
+          </div>
+
           {/* Current Status */}
-          <div className="bg-gray-800 rounded-lg p-4">
-            <h3 className="text-lg font-bold text-swat-green mb-3">Current Status</h3>
-            {teamStatus.qual_ranking && (
-              <div className="mb-2">
-                <span className="text-gray-300">Rank: </span>
-                <span className={`font-bold ${getRankingColor(teamStatus.qual_ranking)}`}>
-                  #{teamStatus.qual_ranking}
-                </span>
-              </div>
-            )}
-            {teamStatus.qual_record && (
-              <div className="mb-2">
-                <span className="text-gray-300">Record: </span>
-                <span className="text-green-400">{teamStatus.qual_record.wins}</span>
-                <span className="text-gray-400">-</span>
-                <span className="text-red-400">{teamStatus.qual_record.losses}</span>
-                {teamStatus.qual_record.ties > 0 && (
-                  <>
+          <div className="bg-gray-800 rounded-lg p-3">
+            <h3 className="text-lg font-bold text-swat-green mb-2">Current Status</h3>
+            <div className="grid grid-cols-4 gap-x-4 gap-y-2 text-base">
+              {teamStatus.qual_ranking && (
+                <>
+                  <span className="text-gray-300">Rank:</span>
+                  <span className={`font-bold ${getRankingColor(teamStatus.qual_ranking)}`}>
+                    #{teamStatus.qual_ranking}
+                  </span>
+                </>
+              )}
+              {teamStatus.qual_record && (
+                <>
+                  <span className="text-gray-300">Record:</span>
+                  <span className="font-bold">
+                    <span className="text-green-400">{teamStatus.qual_record.wins}</span>
                     <span className="text-gray-400">-</span>
-                    <span className="text-yellow-400">{teamStatus.qual_record.ties}</span>
-                  </>
-                )}
-              </div>
-            )}
-            {teamStatus.opr && (
-              <div className="mb-2">
-                <span className="text-gray-300">OPR: </span>
-                <span className="text-blue-400 font-mono">{teamStatus.opr}</span>
-              </div>
-            )}
-            {teamStatus.qual_avg && (
-              <div className="mb-2">
-                <span className="text-gray-300">Avg RP: </span>
-                <span className="text-purple-400 font-mono">{teamStatus.qual_avg.toFixed(1)}</span>
-              </div>
-            )}
+                    <span className="text-red-400">{teamStatus.qual_record.losses}</span>
+                    {teamStatus.qual_record.ties > 0 && (
+                      <>
+                        <span className="text-gray-400">-</span>
+                        <span className="text-yellow-400">{teamStatus.qual_record.ties}</span>
+                      </>
+                    )}
+                  </span>
+                </>
+              )}
+              {teamStatus.opr && (
+                <>
+                  <span className="text-gray-300">OPR:</span>
+                  <span className="text-blue-400 font-mono font-bold">{teamStatus.opr}</span>
+                </>
+              )}
+              {teamStatus.qual_avg && (
+                <>
+                  <span className="text-gray-300">Avg RP:</span>
+                  <span className="text-purple-400 font-mono font-bold">{teamStatus.qual_avg.toFixed(1)}</span>
+                </>
+              )}
+            </div>
             {teamStatus.overall_status_str && (
-              <div className="mb-2">
+              <div className="mt-2 pt-2 border-t border-gray-600 text-base">
                 <span className="text-gray-300">Status: </span>
-                <span 
+                <span
                   className="text-swat-green font-semibold"
                   dangerouslySetInnerHTML={{ __html: teamStatus.overall_status_str }}
                 />
@@ -560,9 +610,9 @@ const PitDisplay: React.FC = () => {
           {/* Next Match */}
           {nextMatch && (
             <div className="bg-gray-800 rounded-lg p-4">
-              <h3 className="text-lg font-bold text-swat-green mb-3">Next Match</h3>
-              <div className="mb-2">
-                <span className="text-xl font-bold inline-flex items-center gap-2">
+              <div className="flex justify-between items-center mb-3">
+                <h3 className="text-xl font-bold text-swat-green">Next Match</h3>
+                <span className="text-2xl font-bold inline-flex items-center gap-2">
                   {(() => {
                     const actualMatchNum = getActualMatchNumber(nextMatch.match_key, nextMatch.comp_level, nextMatch.match_number);
                     return getCompLevelDisplay(nextMatch.comp_level, actualMatchNum) + getMatchDisplayNumber(nextMatch.comp_level, actualMatchNum);
@@ -572,39 +622,67 @@ const PitDisplay: React.FC = () => {
                     const isOnRed = nextMatch.red_alliance.team_keys?.includes(teamKey);
                     const isOnBlue = nextMatch.blue_alliance.team_keys?.includes(teamKey);
                     if (isOnRed) {
-                      return <div className="w-3 h-3 bg-red-500 rounded-full"></div>;
+                      return <div className="w-4 h-4 bg-red-500 rounded-full"></div>;
                     } else if (isOnBlue) {
-                      return <div className="w-3 h-3 bg-blue-500 rounded-full"></div>;
+                      return <div className="w-4 h-4 bg-blue-500 rounded-full"></div>;
                     }
                     return null;
                   })()}
                 </span>
               </div>
               <div className="mb-2">
-                <span className="text-gray-300">Time: </span>
-                <span className="font-mono">{formatTime(nextMatch.predicted_time || nextMatch.time)}</span>
+                <span className="text-base text-gray-300">Time: </span>
+                <span className="text-lg font-mono font-bold">{formatTime(nextMatch.predicted_time || nextMatch.time)}</span>
                 {nextMatch.predicted_time && (
-                  <span className="text-sm text-swat-green ml-2">
+                  <span className="text-base text-swat-green ml-2 font-bold">
                     ({formatTimeUntil(nextMatch.predicted_time)})
                   </span>
                 )}
               </div>
-              <div className="space-y-1 text-sm">
-                <div className="flex items-center">
-                  <div className="w-4 h-4 bg-red-500 rounded mr-2"></div>
-                  <span>{nextMatch.red_alliance.team_keys?.map(key => key.replace('frc', '')).join(', ')}</span>
+              <div className="space-y-2 text-base">
+                <div className="flex items-center gap-2">
+                  <div className="w-5 h-5 bg-red-500 rounded flex-shrink-0"></div>
+                  <div className="flex gap-1.5 flex-wrap">
+                    {nextMatch.red_alliance.team_keys?.map(key => (
+                      <div key={key} className="flex items-center gap-1">
+                        <img
+                          src={`https://www.thebluealliance.com/avatar/${event.year}/${key}.png`}
+                          alt={key.replace('frc', '')}
+                          className="w-6 h-6 rounded"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                          }}
+                        />
+                        <span className="font-semibold">{key.replace('frc', '')}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                <div className="flex items-center">
-                  <div className="w-4 h-4 bg-blue-500 rounded mr-2"></div>
-                  <span>{nextMatch.blue_alliance.team_keys?.map(key => key.replace('frc', '')).join(', ')}</span>
+                <div className="flex items-center gap-2">
+                  <div className="w-5 h-5 bg-blue-500 rounded flex-shrink-0"></div>
+                  <div className="flex gap-1.5 flex-wrap">
+                    {nextMatch.blue_alliance.team_keys?.map(key => (
+                      <div key={key} className="flex items-center gap-1">
+                        <img
+                          src={`https://www.thebluealliance.com/avatar/${event.year}/${key}.png`}
+                          alt={key.replace('frc', '')}
+                          className="w-6 h-6 rounded"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                          }}
+                        />
+                        <span className="font-semibold">{key.replace('frc', '')}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
               {turnaroundTime && (
                 <div className="mt-3 pt-3 border-t border-gray-600">
-                  <span className="text-gray-300">Turnaround: </span>
-                  <span className="font-mono">{formatTurnaroundTime(turnaroundTime)}</span>
+                  <span className="text-base text-gray-300">Turnaround: </span>
+                  <span className="text-lg font-mono font-bold">{formatTurnaroundTime(turnaroundTime)}</span>
                   {turnaroundAllianceColor && (
-                    <div className={`inline-block w-3 h-3 rounded-full ml-2 ${
+                    <div className={`inline-block w-4 h-4 rounded-full ml-2 ${
                       turnaroundAllianceColor === 'red' ? 'bg-red-500' : 'bg-blue-500'
                     }`}></div>
                   )}
@@ -616,9 +694,9 @@ const PitDisplay: React.FC = () => {
           {/* Last Match */}
           {lastMatch && (
             <div className="bg-gray-800 rounded-lg p-4">
-              <h3 className="text-lg font-bold text-swat-green mb-3">Last Match</h3>
-              <div className="mb-2">
-                <span className="text-xl font-bold inline-flex items-center gap-2">
+              <div className="flex justify-between items-center mb-3">
+                <h3 className="text-xl font-bold text-swat-green">Last Match</h3>
+                <span className="text-2xl font-bold inline-flex items-center gap-2">
                   {(() => {
                     const actualMatchNum = getActualMatchNumber(lastMatch.match_key, lastMatch.comp_level, lastMatch.match_number);
                     return getCompLevelDisplay(lastMatch.comp_level, actualMatchNum) + getMatchDisplayNumber(lastMatch.comp_level, actualMatchNum);
@@ -628,36 +706,64 @@ const PitDisplay: React.FC = () => {
                     const isOnRed = lastMatch.red_alliance.team_keys?.includes(teamKey);
                     const isOnBlue = lastMatch.blue_alliance.team_keys?.includes(teamKey);
                     if (isOnRed) {
-                      return <div className="w-3 h-3 bg-red-500 rounded-full"></div>;
+                      return <div className="w-4 h-4 bg-red-500 rounded-full"></div>;
                     } else if (isOnBlue) {
-                      return <div className="w-3 h-3 bg-blue-500 rounded-full"></div>;
+                      return <div className="w-4 h-4 bg-blue-500 rounded-full"></div>;
                     }
                     return null;
                   })()}
                 </span>
               </div>
-              <div className="space-y-1 text-sm mb-3">
+              <div className="space-y-2 text-base mb-3">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <div className="w-4 h-4 bg-red-500 rounded mr-2"></div>
-                    <span>{lastMatch.red_alliance.team_keys?.map(key => key.replace('frc', '')).join(', ')}</span>
+                  <div className="flex items-center gap-2">
+                    <div className="w-5 h-5 bg-red-500 rounded flex-shrink-0"></div>
+                    <div className="flex gap-1.5 flex-wrap">
+                      {lastMatch.red_alliance.team_keys?.map(key => (
+                        <div key={key} className="flex items-center gap-1">
+                          <img
+                            src={`https://www.thebluealliance.com/avatar/${event.year}/${key}.png`}
+                            alt={key.replace('frc', '')}
+                            className="w-6 h-6 rounded"
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none';
+                            }}
+                          />
+                          <span className="font-semibold">{key.replace('frc', '')}</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                  <span className={`font-bold ${lastMatch.winning_alliance === 'red' ? 'text-red-400' : 'text-gray-400'}`}>
+                  <span className={`text-xl font-bold ${lastMatch.winning_alliance === 'red' ? 'text-red-400' : 'text-gray-400'}`}>
                     {lastMatch.red_alliance.score}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <div className="w-4 h-4 bg-blue-500 rounded mr-2"></div>
-                    <span>{lastMatch.blue_alliance.team_keys?.map(key => key.replace('frc', '')).join(', ')}</span>
+                  <div className="flex items-center gap-2">
+                    <div className="w-5 h-5 bg-blue-500 rounded flex-shrink-0"></div>
+                    <div className="flex gap-1.5 flex-wrap">
+                      {lastMatch.blue_alliance.team_keys?.map(key => (
+                        <div key={key} className="flex items-center gap-1">
+                          <img
+                            src={`https://www.thebluealliance.com/avatar/${event.year}/${key}.png`}
+                            alt={key.replace('frc', '')}
+                            className="w-6 h-6 rounded"
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none';
+                            }}
+                          />
+                          <span className="font-semibold">{key.replace('frc', '')}</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                  <span className={`font-bold ${lastMatch.winning_alliance === 'blue' ? 'text-blue-400' : 'text-gray-400'}`}>
+                  <span className={`text-xl font-bold ${lastMatch.winning_alliance === 'blue' ? 'text-blue-400' : 'text-gray-400'}`}>
                     {lastMatch.blue_alliance.score}
                   </span>
                 </div>
               </div>
               {lastMatch.score_breakdown && !isEliminationMatch(lastMatch.comp_level) && (
-                <div className="text-xs text-gray-400">
+                <div className="text-sm text-gray-400">
                   {(() => {
                     const teamRP = getTeamRankingPoints(
                       lastMatch.score_breakdown,
@@ -667,16 +773,16 @@ const PitDisplay: React.FC = () => {
                       lastMatch.blue_alliance.team_keys || []
                     );
                     const allRP = extractRankingPoints(lastMatch.score_breakdown, event.year);
-                    
+
                     if (teamRP) {
                       return (
                         <div>
                           <div className="mb-1">
-                            <span>Team RP: </span>
-                            <span className="text-purple-400 font-bold">{teamRP.rp}</span>
+                            <span>Team Bonus RP: </span>
+                            <span className="text-purple-400 font-bold text-base">{teamRP.rp}</span>
                           </div>
                           {Object.keys(teamRP.breakdown).length > 0 && (
-                            <div className="text-xs">
+                            <div className="text-sm">
                               {Object.entries(teamRP.breakdown).map(([name, achieved]) => (
                                 <span key={name} className={`mr-2 ${achieved ? 'text-green-400' : 'text-red-400'}`}>
                                   {name}: {achieved ? '✓' : '✗'}
@@ -689,11 +795,11 @@ const PitDisplay: React.FC = () => {
                     } else if (allRP) {
                       return (
                         <div>
-                          <span>Red RP: </span>
-                          <span className="text-red-400 font-bold">{allRP.redRP}</span>
+                          <span>Red Bonus RP: </span>
+                          <span className="text-red-400 font-bold text-base">{allRP.redRP}</span>
                           <span className="text-gray-400 mx-2">•</span>
-                          <span>Blue RP: </span>
-                          <span className="text-blue-400 font-bold">{allRP.blueRP}</span>
+                          <span>Blue Bonus RP: </span>
+                          <span className="text-blue-400 font-bold text-base">{allRP.blueRP}</span>
                         </div>
                       );
                     } else {
@@ -708,10 +814,10 @@ const PitDisplay: React.FC = () => {
                 </div>
               )}
               {isEliminationMatch(lastMatch.comp_level) && (
-                <div className="text-xs text-gray-400">
+                <div className="text-sm text-gray-400">
                   <div>
                     <span>Result: </span>
-                    <span className={`font-bold ${
+                    <span className={`font-bold text-base ${
                       lastMatch.winning_alliance === (lastMatch.red_alliance.team_keys?.includes(eventSummary.teamKey) ? 'red' : 'blue')
                         ? 'text-green-400' : 'text-red-400'
                     }`}>
@@ -727,62 +833,111 @@ const PitDisplay: React.FC = () => {
       </div>
 
       {/* Match Schedule at Bottom */}
-      <div className="bg-gray-800 rounded-lg p-4 max-h-80 overflow-y-auto">
-        <h3 className="text-lg font-bold text-swat-green mb-3">Match Schedule</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+      <div className="bg-gray-800 rounded-lg p-4 max-h-[28vh] overflow-y-auto">
+        <h3 className="text-xl font-bold text-swat-green mb-3">Match Schedule</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3">
           {matchSchedule.map((match) => {
             const allianceColor = getAllianceColor(eventSummary.teamKey, match);
             const winner = allianceColor === match.winning_alliance;
             return (
               <div
                 key={match.match_key}
-                className={`flex justify-between items-center p-3 rounded ${
-                  allianceColor === 'red' ? 'bg-red-900/30 border border-red-500/30' : 
+                className={`p-3 rounded ${
+                  allianceColor === 'red' ? 'bg-red-900/30 border border-red-500/30' :
                   allianceColor === 'blue' ? 'bg-blue-900/30 border border-blue-500/30' : 'bg-gray-700'
                 }`}
               >
-                <div>
-                  <span className="font-bold text-sm">
-                    {(() => {
-                      const actualMatchNum = getActualMatchNumber(match.match_key, match.comp_level, match.match_number);
-                      return getCompLevelDisplay(match.comp_level, actualMatchNum) + getMatchDisplayNumber(match.comp_level, actualMatchNum);
-                    })()}
-                  </span>
-                  <div className="text-xs text-gray-400">
-                    {formatTime(match.predicted_time || match.time)}
-                  </div>
-                </div>
-                <div className="text-right text-xs">
-                  {match.winning_alliance && (
-                    <div className={`font-bold ${
-                      match.winning_alliance === 'red' ? 'text-red-400' : 'text-blue-400'
-                    }`}>
-                      {match.winning_alliance && winner ? "W" : "L"} {match.red_alliance.score} - {match.blue_alliance.score}
-                    </div>
-                  )}
-                  {match.score_breakdown && allianceColor && !isEliminationMatch(match.comp_level) && (
-                    <div className="text-xs text-gray-400">
+                <div className="flex justify-between items-start mb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-base">
                       {(() => {
-                        const teamRP = getTeamRankingPoints(
-                          match.score_breakdown,
-                          eventSummary.event.year,
-                          eventSummary.teamKey,
-                          match.red_alliance.team_keys || [],
-                          match.blue_alliance.team_keys || []
-                        );
-                        return teamRP ? (
-                          <span className="text-purple-400">+{teamRP.rp} RP</span>
-                        ) : null;
+                        const actualMatchNum = getActualMatchNumber(match.match_key, match.comp_level, match.match_number);
+                        return getCompLevelDisplay(match.comp_level, actualMatchNum) + getMatchDisplayNumber(match.comp_level, actualMatchNum);
                       })()}
+                    </span>
+                    {match.winning_alliance && winner !== undefined && (
+                      <span className={`text-xs font-bold ${winner ? 'text-green-400' : 'text-red-400'}`}>
+                        {winner ? 'W' : 'L'}
+                      </span>
+                    )}
+                    {match.score_breakdown && allianceColor && !isEliminationMatch(match.comp_level) && (
+                      <>
+                        {(() => {
+                          const teamRP = getTeamRankingPoints(
+                            match.score_breakdown,
+                            eventSummary.event.year,
+                            eventSummary.teamKey,
+                            match.red_alliance.team_keys || [],
+                            match.blue_alliance.team_keys || []
+                          );
+                          return teamRP ? (
+                            <span className="text-purple-400 font-semibold text-xs">+{teamRP.rp} RP</span>
+                          ) : null;
+                        })()}
+                      </>
+                    )}
+                  </div>
+                  <span className="text-sm text-gray-400">
+                    {formatTime(match.predicted_time || match.time)}
+                  </span>
+                </div>
+
+                {/* Alliances with inline scores */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-3 h-3 bg-red-500 rounded flex-shrink-0"></div>
+                      <div className="flex gap-1 flex-wrap items-center">
+                        {match.red_alliance.team_keys?.map(key => (
+                          <div key={key} className="flex items-center gap-0.5">
+                            <img
+                              src={`https://www.thebluealliance.com/avatar/${eventSummary.event.year}/${key}.png`}
+                              alt={key.replace('frc', '')}
+                              className="w-4 h-4 rounded"
+                              onError={(e) => {
+                                e.currentTarget.style.display = 'none';
+                              }}
+                            />
+                            <span className="text-gray-300 text-sm font-medium">{key.replace('frc', '')}</span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  )}
-                  {allianceColor && (
-                    <div className={`text-xs ${
-                      allianceColor === 'red' ? 'text-red-400' : 'text-blue-400'
-                    }`}>
-                      {allianceColor.toUpperCase()}
+                    {match.winning_alliance && (
+                      <span className={`font-bold text-sm ml-2 ${
+                        match.winning_alliance === 'red' ? 'text-red-400' : 'text-gray-500'
+                      }`}>
+                        {match.red_alliance.score}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-3 h-3 bg-blue-500 rounded flex-shrink-0"></div>
+                      <div className="flex gap-1 flex-wrap items-center">
+                        {match.blue_alliance.team_keys?.map(key => (
+                          <div key={key} className="flex items-center gap-0.5">
+                            <img
+                              src={`https://www.thebluealliance.com/avatar/${eventSummary.event.year}/${key}.png`}
+                              alt={key.replace('frc', '')}
+                              className="w-4 h-4 rounded"
+                              onError={(e) => {
+                                e.currentTarget.style.display = 'none';
+                              }}
+                            />
+                            <span className="text-gray-300 text-sm font-medium">{key.replace('frc', '')}</span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  )}
+                    {match.winning_alliance && (
+                      <span className={`font-bold text-sm ml-2 ${
+                        match.winning_alliance === 'blue' ? 'text-blue-400' : 'text-gray-500'
+                      }`}>
+                        {match.blue_alliance.score}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
             );
