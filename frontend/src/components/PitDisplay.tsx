@@ -217,9 +217,8 @@ const PitDisplay: React.FC = () => {
     Math.floor(Math.random() * (max - min + 1)) + min;
 
     // Pool of alliance partner teams
-    const allianceTeams = ['frc254', 'frc1678', 'frc973', 'frc1114', 'frc118', 'frc1987', 'frc1986', 'frc1730', 'frc1710', 'frc4522', 'frc2345', 'frc2457'];
-    const opponentTeams = ['frc254', 'frc1678', 'frc973', 'frc1114', 'frc118', 'frc1987', 'frc1986', 'frc1730', 'frc1710', 'frc4522', 'frc2345', 'frc2457'];
-
+    const allianceTeams = ['frc254', 'frc1678', 'frc973', 'frc1114', 'frc118', 'frc1987', 'frc1986', 'frc1730', 'frc1710', 'frc4522', 'frc2345', 'frc2457', 'frc16', 'frc6424', 'frc125', 'frc2056', 'frc1023', 'frc1939', 'frc987', 'frc4766', 'frc935', 'frc1825', 'frc1756', 'frc3284', 'frc5098', 'frc2001', 'frc1785', 'frc1763', 'frc1764', 'frc4959', 'frc5119', 'frc5126', 'frc9410', 'frc1108', 'frc1208', 'frc1785', 'frc1802', 'frc1827', 'frc1997', 'frc1847', 'frc2410', 'frc2560', 'frc4329', 'frc4455', 'frc4931', 'frc5268', 'frc5801', 'frc5809', 'frc5968', 'frc7064', 'frc7662', 'frc8112', 'frc9428', 'frc9445', 'frc1706', 'frc2165', 'frc2383', 'frc2352', 'frc3160', 'frc6026', 'frc10378', 'frc5550', 'frc3931', 'frc1561'];
+    const opponentTeams = ['frc254', 'frc1678', 'frc973', 'frc1114', 'frc118', 'frc1987', 'frc1986', 'frc1730', 'frc1710', 'frc4522', 'frc2345', 'frc2457', 'frc16', 'frc6424', 'frc125', 'frc2056', 'frc1023', 'frc1939', 'frc987', 'frc4766', 'frc935', 'frc1825', 'frc1756', 'frc3284', 'frc5098', 'frc2001', 'frc1785', 'frc1763', 'frc1764', 'frc4959', 'frc5119', 'frc5126', 'frc9410', 'frc1108', 'frc1208', 'frc1785', 'frc1802', 'frc1827', 'frc1997', 'frc1847', 'frc2410', 'frc2560', 'frc4329', 'frc4455', 'frc4931', 'frc5268', 'frc5801', 'frc5809', 'frc5968', 'frc7064', 'frc7662', 'frc8112', 'frc9428', 'frc9445', 'frc1706', 'frc2165', 'frc2383', 'frc2352', 'frc3160', 'frc6026', 'frc10378', 'frc5550', 'frc3931', 'frc1561'];
     // Shuffle array helper
     const shuffleArray = <T,>(array: T[]): T[] => {
       const arr = [...array];
@@ -778,7 +777,7 @@ const PitDisplay: React.FC = () => {
                       return (
                         <div>
                           <div className="mb-1">
-                            <span>Team Bonus RP: </span>
+                            <span>Team RP: </span>
                             <span className="text-purple-400 font-bold text-base">{teamRP.rp}</span>
                           </div>
                           {Object.keys(teamRP.breakdown).length > 0 && (
