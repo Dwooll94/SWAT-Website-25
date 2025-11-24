@@ -86,6 +86,9 @@ interface EventMatch {
   score_breakdown?: any;
 }
 
+// Avatar cache to prevent repeated requests
+const avatarCache = new Map<string, string>();
+
 const PitDisplay: React.FC = () => {
   const [eventSummary, setEventSummary] = useState<EventSummary | null>(null);
   const [matchSchedule, setMatchSchedule] = useState<EventMatch[]>([]);
@@ -98,6 +101,20 @@ const PitDisplay: React.FC = () => {
   const [keySequence, setKeySequence] = useState<string[]>([]);
   const [testDataActive, setTestDataActive] = useState(false);
 
+  // Preload avatar images
+  const preloadAvatar = (year: number, teamKey: string) => {
+    const cacheKey = `${year}-${teamKey}`;
+    if (avatarCache.has(cacheKey)) {
+      return avatarCache.get(cacheKey);
+    }
+
+    const url = `https://www.thebluealliance.com/avatar/${year}/${teamKey}.png`;
+    const img = new Image();
+    img.src = url;
+    avatarCache.set(cacheKey, url);
+    return url;
+  };
+
   useEffect(() => {
     if (!testDataActive) {
       fetchEventData();
@@ -107,6 +124,25 @@ const PitDisplay: React.FC = () => {
       return () => clearInterval(interval);
     }
   }, [testDataActive]);
+
+  // Preload avatars when event data changes
+  useEffect(() => {
+    if (eventSummary && matchSchedule.length > 0) {
+      const year = eventSummary.event.year;
+      const teamsToPreload = new Set<string>();
+
+      // Collect all team keys from matches
+      matchSchedule.forEach(match => {
+        match.red_alliance.team_keys?.forEach(key => teamsToPreload.add(key));
+        match.blue_alliance.team_keys?.forEach(key => teamsToPreload.add(key));
+      });
+
+      // Preload avatars
+      teamsToPreload.forEach(teamKey => {
+        preloadAvatar(year, teamKey);
+      });
+    }
+  }, [eventSummary, matchSchedule]);
 
   // Easter egg: Ctrl + 1806 key sequence
   useEffect(() => {
@@ -648,6 +684,7 @@ const PitDisplay: React.FC = () => {
                           src={`https://www.thebluealliance.com/avatar/${event.year}/${key}.png`}
                           alt={key.replace('frc', '')}
                           className="w-6 h-6 rounded"
+                          loading="lazy"
                           onError={(e) => {
                             e.currentTarget.style.display = 'none';
                           }}
@@ -666,6 +703,7 @@ const PitDisplay: React.FC = () => {
                           src={`https://www.thebluealliance.com/avatar/${event.year}/${key}.png`}
                           alt={key.replace('frc', '')}
                           className="w-6 h-6 rounded"
+                          loading="lazy"
                           onError={(e) => {
                             e.currentTarget.style.display = 'none';
                           }}
@@ -893,6 +931,7 @@ const PitDisplay: React.FC = () => {
                               src={`https://www.thebluealliance.com/avatar/${eventSummary.event.year}/${key}.png`}
                               alt={key.replace('frc', '')}
                               className="w-4 h-4 rounded"
+                              loading="lazy"
                               onError={(e) => {
                                 e.currentTarget.style.display = 'none';
                               }}
@@ -920,6 +959,7 @@ const PitDisplay: React.FC = () => {
                               src={`https://www.thebluealliance.com/avatar/${eventSummary.event.year}/${key}.png`}
                               alt={key.replace('frc', '')}
                               className="w-4 h-4 rounded"
+                              loading="lazy"
                               onError={(e) => {
                                 e.currentTarget.style.display = 'none';
                               }}
