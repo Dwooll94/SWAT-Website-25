@@ -7,6 +7,7 @@ import { generateToken, extractGraduationYear, isValidSchoolEmail } from '../uti
 import { AuthenticatedRequest } from '../middleware/auth';
 import { emailService } from '../services/emailService';
 import { EmailVerificationService } from '../utils/emailVerification';
+import { PasswordResetService } from '../utils/passwordReset';
 import { randomBytes } from 'crypto';
 
 export const register = async (req: Request, res: Response) => {
@@ -849,5 +850,100 @@ export const resendVerificationEmail = async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Resend verification email error:', error);
     res.status(500).json({ message: 'Server error sending verification email' });
+  }
+};
+
+export const requestPasswordReset = async (req: Request, res: Response) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ message: 'Email is required' });
+    }
+
+    // Find user by email
+    const user = await UserModel.findByEmail(email);
+
+    // For security reasons, always return success even if user doesn't exist
+    // This prevents email enumeration attacks
+    if (!user) {
+      return res.json({
+        message: 'If an account exists with this email, a password reset link has been sent.'
+      });
+    }
+
+    // Check if user is active
+    if (!user.is_active) {
+      return res.json({
+        message: 'If an account exists with this email, a password reset link has been sent.'
+      });
+    }
+
+    // Generate password reset token
+    const resetToken = await PasswordResetService.createResetToken(user.id);
+
+    // Send password reset email
+    const userName = `${user.first_name || ''} ${user.last_name || ''}`.trim();
+    const emailSent = await emailService.sendPasswordResetEmail(
+      user.email,
+      userName || 'User',
+      resetToken
+    );
+
+    if (!emailSent) {
+      console.error('Failed to send password reset email');
+      return res.status(500).json({ message: 'Failed to send password reset email' });
+    }
+
+    res.json({
+      message: 'If an account exists with this email, a password reset link has been sent.'
+    });
+  } catch (error) {
+    console.error('Password reset request error:', error);
+    res.status(500).json({ message: 'Server error processing password reset request' });
+  }
+};
+
+export const resetPassword = async (req: Request, res: Response) => {
+  try {
+    const { token } = req.params;
+    const { newPassword } = req.body;
+
+    if (!token) {
+      return res.status(400).json({ message: 'Reset token is required' });
+    }
+
+    if (!newPassword) {
+      return res.status(400).json({ message: 'New password is required' });
+    }
+
+    // Validate password strength
+    if (newPassword.length < 8) {
+      return res.status(400).json({
+        message: 'Password must be at least 8 characters long'
+      });
+    }
+
+    // Verify the reset token
+    const verification = await PasswordResetService.verifyToken(token);
+
+    if (!verification.isValid) {
+      return res.status(400).json({
+        message: verification.reason === 'Token expired'
+          ? 'Password reset link has expired. Please request a new one.'
+          : 'Invalid password reset token.'
+      });
+    }
+
+    // Update the user's password
+    await UserModel.updatePassword(verification.userId!, newPassword);
+
+    // Delete the used token and any other tokens for this user
+    await PasswordResetService.deleteUserTokens(verification.userId!);
+
+    res.json({ message: 'Password has been reset successfully. You can now log in with your new password.' });
+  } catch (error) {
+    console.error('Password reset error:', error);
+    res.status(500).json({ message: 'Server error during password reset' });
   }
 };

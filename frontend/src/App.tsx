@@ -21,6 +21,8 @@ import Roster from './pages/Roster';
 import OutreachLeaderboard from './pages/OutreachLeaderboard';
 import Unauthorized from './pages/Unauthorized';
 import VerifyEmail from './pages/VerifyEmail';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 import DynamicPage from './pages/DynamicPage';
 import { logHTTPSConfig } from './utils/httpsHelper';
 import './App.css';
@@ -63,6 +65,8 @@ function App() {
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               <Route path="/verify-email/:token" element={<VerifyEmail />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password/:token" element={<ResetPassword />} />
               <Route path="/about" element={<About />} />
               <Route path="/sponsors" element={<Sponsors />} />
               <Route path="/resources" element={<Resources />} />

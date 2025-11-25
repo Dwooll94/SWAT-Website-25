@@ -106,6 +106,15 @@ CREATE TABLE email_verification_tokens (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Password reset tokens
+CREATE TABLE password_reset_tokens (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    token VARCHAR(255) UNIQUE NOT NULL,
+    expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Email invitations for mentors
 CREATE TABLE mentor_invitations (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -369,6 +378,10 @@ CREATE INDEX idx_users_graduation_year ON users(graduation_year);
 CREATE INDEX idx_users_registration_status ON users(registration_status);
 CREATE INDEX idx_email_verification_tokens_token ON email_verification_tokens(token);
 CREATE INDEX idx_email_verification_tokens_user_id ON email_verification_tokens(user_id);
+
+-- Indexes for password reset tokens
+CREATE INDEX idx_password_reset_tokens_token ON password_reset_tokens(token);
+CREATE INDEX idx_password_reset_tokens_user_id ON password_reset_tokens(user_id);
 CREATE INDEX idx_proposed_changes_status ON proposed_changes(status);
 CREATE INDEX idx_proposed_changes_user_id ON proposed_changes(user_id);
 CREATE INDEX idx_current_events_start_date ON current_events(start_date);

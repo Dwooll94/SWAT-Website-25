@@ -3,7 +3,7 @@ import { body } from 'express-validator';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
-import { register, login, getProfile, updateRegistrationStatus, changePassword, updateContactInfo, updateGuardianInfo, inviteMentor, getAllUsers, updateUserStatus, updateMaintenanceAccess, updateUserContactInfoAdmin, deleteUser, deactivateOwnAccount, updateUserGuardianInfoAdmin, getUserGuardianInfoAdmin, updateCoreLeadership, updateUserRegistrationStatus, updateYearsOnTeam, verifyEmail, resendVerificationEmail } from '../controllers/authController';
+import { register, login, getProfile, updateRegistrationStatus, changePassword, updateContactInfo, updateGuardianInfo, inviteMentor, getAllUsers, updateUserStatus, updateMaintenanceAccess, updateUserContactInfoAdmin, deleteUser, deactivateOwnAccount, updateUserGuardianInfoAdmin, getUserGuardianInfoAdmin, updateCoreLeadership, updateUserRegistrationStatus, updateYearsOnTeam, verifyEmail, resendVerificationEmail, requestPasswordReset, resetPassword } from '../controllers/authController';
 import { authenticate } from '../middleware/auth';
 
 const router = Router();
@@ -81,6 +81,14 @@ const updateYearsOnTeamValidation = [
   body('years_on_team').isInt({ min: 0, max: 20 }).withMessage('Years on team must be a number between 0 and 20')
 ];
 
+const requestPasswordResetValidation = [
+  body('email').isEmail().normalizeEmail({gmail_remove_dots: false}).withMessage('Valid email is required')
+];
+
+const resetPasswordValidation = [
+  body('newPassword').isLength({ min: 8 }).withMessage('Password must be at least 8 characters')
+];
+
 // Configure multer for contract uploads
 const contractStorage = multer.diskStorage({
   destination: (req, _file, cb) => {
@@ -137,6 +145,10 @@ router.put('/deactivate-account', authenticate, deactivateOwnAccount);
 // Email verification routes
 router.get('/verify-email/:token', verifyEmail);
 router.post('/resend-verification', resendVerificationEmail);
+
+// Password reset routes
+router.post('/request-password-reset', requestPasswordResetValidation, requestPasswordReset);
+router.post('/reset-password/:token', resetPasswordValidation, resetPassword);
 
 // Admin user management routes
 router.get('/users', authenticate, getAllUsers);
