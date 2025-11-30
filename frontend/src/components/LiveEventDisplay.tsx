@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../contexts/AuthContext';
 import { extractRankingPoints, getTeamRankingPoints } from '../utils/scoringUtils';
+import { getTeamAvatarUrl, handleAvatarError } from '../utils/avatarHelper';
 
 interface EventSummary {
   event: {
@@ -92,13 +93,55 @@ const LiveEventDisplay: React.FC = () => {
   const [streamVisible, setStreamVisible] = useState(false);
   const streamContainerRef = React.useRef<HTMLDivElement>(null);
 
+  // Easter egg state
+  const [keySequence, setKeySequence] = useState<string[]>([]);
+  const [testDataActive, setTestDataActive] = useState(false);
+
   useEffect(() => {
-    fetchEventData();
-    
-    // Set up polling for updates every 30 seconds during events
-    const interval = setInterval(fetchEventData, 30000);
-    return () => clearInterval(interval);
-  }, []);
+    if (!testDataActive) {
+      fetchEventData();
+
+      // Set up polling for updates every 30 seconds during events (but not when test data is active)
+      const interval = setInterval(fetchEventData, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [testDataActive]);
+
+  // Easter egg: Ctrl + 1806 key sequence to toggle test data
+  // Press Ctrl+1, Ctrl+8, Ctrl+0, Ctrl+6 in sequence to activate/deactivate test mode
+  // Test mode generates fake event data with team 1806 always winning (180-106)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey && ['1', '8', '0', '6'].includes(e.key)) {
+        setKeySequence(prev => {
+          const newSequence = [...prev, e.key];
+
+          // Check if sequence matches 1-8-0-6
+          if (newSequence.length > 4) {
+            return [e.key]; // Reset if too long
+          }
+
+          // Check for complete sequence
+          if (newSequence.length === 4 &&
+              newSequence[0] === '1' &&
+              newSequence[1] === '8' &&
+              newSequence[2] === '0' &&
+              newSequence[3] === '6') {
+            toggleTestData();
+            return [];
+          }
+
+          return newSequence;
+        });
+      } else if (!e.ctrlKey && keySequence.length > 0) {
+        // Reset if Ctrl is released
+        setKeySequence([]);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [keySequence]);
 
   // Intersection observer to detect when stream container is visible
   useEffect(() => {
@@ -147,6 +190,190 @@ const LiveEventDisplay: React.FC = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const toggleTestData = () => {
+    if (testDataActive) {
+      // Deactivate test data and resume normal operation
+      setTestDataActive(false);
+      setEventSummary(null);
+      setMatchSchedule([]);
+      setStreamVisible(false);
+      setLoading(true);
+      // fetchEventData will be called by useEffect when testDataActive changes
+      return;
+    }
+
+    // Activate test data
+    setTestDataActive(true);
+    setLoading(false);
+    setStreamVisible(true);
+
+    const randomInt = (min: number, max: number) =>
+      Math.floor(Math.random() * (max - min + 1)) + min;
+
+    // Pool of alliance partner teams
+    const allianceTeams = ['frc254', 'frc1678', 'frc973', 'frc1114', 'frc118', 'frc1987', 'frc1986', 'frc1730', 'frc1710', 'frc4522', 'frc2345', 'frc2457', 'frc16', 'frc6424', 'frc125', 'frc2056', 'frc1023', 'frc1939', 'frc987', 'frc4766'];
+    const opponentTeams = ['frc935', 'frc1825', 'frc1756', 'frc3284', 'frc5098', 'frc2001', 'frc1785', 'frc1763', 'frc1764', 'frc4959', 'frc5119', 'frc5126', 'frc9410', 'frc1108', 'frc1208', 'frc1802', 'frc1827', 'frc1997', 'frc1847', 'frc2410'];
+
+    // Shuffle array helper
+    const shuffleArray = <T,>(array: T[]): T[] => {
+      const arr = [...array];
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    };
+
+    let lastMatchNumber = 1;
+    const matchProgress = randomInt(0, 9);
+    let firstMatchTime = (Date.now() / 1000) - (matchProgress * 2400);
+    let nextMatchTime = firstMatchTime;
+    let hitCurrentTime = false;
+    let nextMatchIndex = -1;
+    let lastMatchIndex = -1;
+
+    // Generate test match schedule (alternate 1806 between red and blue)
+    const testMatches: EventMatch[] = [];
+    for (let i = 1; i <= 10; i++) {
+      const is1806OnRed = i % 2 === 1;
+      const matchGap = randomInt(3, 16);
+      const currentMatch = lastMatchNumber + matchGap;
+      nextMatchTime = nextMatchTime + matchGap * randomInt(420, 600);
+      const hasScore = nextMatchTime < (Date.now() / 1000);
+
+      if (!hitCurrentTime && !hasScore) {
+        nextMatchIndex = i - 1; // Current match (0-indexed)
+        lastMatchIndex = i - 2; // Previous match (0-indexed)
+        hitCurrentTime = true;
+      }
+      lastMatchNumber = currentMatch;
+
+      // Generate alliance partners and opponents
+      const shuffledAllies = shuffleArray(allianceTeams);
+      const shuffledOpponents = shuffleArray(opponentTeams);
+      const alliancePartners = shuffledAllies.slice(0, 2);
+      const opponents = shuffledOpponents.slice(0, 3);
+
+      testMatches.push({
+        match_key: `2025test_qm${i}`,
+        comp_level: 'qm',
+        match_number: currentMatch,
+        time: nextMatchTime,
+        red_alliance: {
+          team_keys: is1806OnRed
+            ? ['frc1806', ...alliancePartners]
+            : opponents,
+          score: hasScore ? (is1806OnRed ? 180 : 106) : undefined
+        },
+        blue_alliance: {
+          team_keys: is1806OnRed
+            ? opponents
+            : ['frc1806', ...alliancePartners],
+          score: hasScore ? (is1806OnRed ? 106 : 180) : undefined
+        },
+        winning_alliance: hasScore ? (is1806OnRed ? 'red' : 'blue') : undefined,
+        score_breakdown: hasScore ? {
+          red: {
+            rp: is1806OnRed ? (i % 3 === 0 ? 3 : 2) : (i % 4 === 0 ? 2 : 1),
+            bargeBonusAchieved: is1806OnRed ? (i % 2 === 0) : (i % 5 === 0),
+            coralBonusAchieved: is1806OnRed ? true : (i % 3 === 0),
+            autoBonusAchieved: is1806OnRed ? (i % 3 === 0) : (i % 4 === 0)
+          },
+          blue: {
+            rp: is1806OnRed ? (i % 4 === 0 ? 2 : 1) : (i % 3 === 0 ? 3 : 2),
+            bargeBonusAchieved: is1806OnRed ? (i % 5 === 0) : (i % 2 === 0),
+            coralBonusAchieved: is1806OnRed ? (i % 3 === 0) : true,
+            autoBonusAchieved: is1806OnRed ? (i % 4 === 0) : (i % 3 === 0)
+          }
+        } : undefined
+      });
+    }
+    setMatchSchedule(testMatches);
+
+    // Calculate turnaround time for next match
+    // Turnaround is the time between next match and the match after that
+    let turnaroundTime: number | undefined;
+    let turnaroundAllianceColor: 'red' | 'blue' | undefined;
+
+    const matchAfterNextIndex = nextMatchIndex + 1;
+    if (nextMatchIndex >= 0 && matchAfterNextIndex < testMatches.length) {
+      const nextMatch = testMatches[nextMatchIndex];
+      const matchAfterNext = testMatches[matchAfterNextIndex];
+      if (nextMatch.time && matchAfterNext.time) {
+        turnaroundTime = matchAfterNext.time - nextMatch.time;
+        if (matchAfterNext.red_alliance.team_keys.includes('frc1806')) {
+          turnaroundAllianceColor = 'red';
+        } else if (matchAfterNext.blue_alliance.team_keys.includes('frc1806')) {
+          turnaroundAllianceColor = 'blue';
+        }
+      }
+    }
+
+    // Generate test event data
+    setEventSummary({
+      event: {
+        event_key: '2025test',
+        name: 'Test Event - Electric Zoo',
+        event_code: 'test',
+        city: 'Zoo City',
+        state_prov: 'MO',
+        start_date: new Date().toISOString().split('T')[0],
+        end_date: new Date().toISOString().split('T')[0],
+        year: 2025,
+        webcasts: [
+          {
+            type: 'youtube',
+            channel: 'uDPbvlQq3BQ' // 10 hours of electric zoo
+          }
+        ]
+      },
+      teamStatus: {
+        qual_ranking: 1,
+        qual_avg: 5.1806,
+        qual_record: { wins: lastMatchIndex + 1, losses: 0, ties: 0 },
+        playoff_alliance: 1,
+        playoff_status: 'won',
+        overall_status_str: '🎉 Event Winner!',
+        opr: 180.6,
+        dpr: 18.06,
+        ccwm: 1806
+      },
+      teamKey: 'frc1806',
+      teamNumber: '1806',
+      nextMatch: nextMatchIndex >= 0 ? testMatches[nextMatchIndex] : undefined,
+      lastMatch: lastMatchIndex >= 0 ? {
+        match_key: testMatches[lastMatchIndex]?.match_key || "oops",
+        comp_level: 'qm',
+        match_number: testMatches[lastMatchIndex]?.match_number || 0,
+        winning_alliance: testMatches[lastMatchIndex]?.red_alliance.team_keys.includes('frc1806') ? 'red' : 'blue',
+        red_alliance: {
+          team_keys: testMatches[lastMatchIndex]?.red_alliance.team_keys || ['frc1806', 'frc254', 'frc1678'],
+          score: testMatches[lastMatchIndex]?.red_alliance.score || 180
+        },
+        blue_alliance: {
+          team_keys: testMatches[lastMatchIndex]?.blue_alliance.team_keys || ['frc973', 'frc1114', 'frc118'],
+          score: testMatches[lastMatchIndex]?.blue_alliance.score || 106
+        },
+        score_breakdown: {
+          red: {
+            rp: 3,
+            bargeBonusAchieved: true,
+            coralBonusAchieved: true,
+            autoBonusAchieved: true
+          },
+          blue: {
+            rp: 1,
+            bargeBonusAchieved: false,
+            coralBonusAchieved: false,
+            autoBonusAchieved: false
+          }
+        }
+      } : undefined,
+      turnaroundTime,
+      turnaroundAllianceColor
+    });
   };
 
   const formatTime = (timestamp?: number) => {
@@ -279,31 +506,36 @@ const LiveEventDisplay: React.FC = () => {
     return null; // No active event
   }
 
-  const { event, teamStatus, nextMatch, lastMatch, teamNumber, turnaroundTime, turnaroundAllianceColor } = eventSummary;
+  const { event, teamStatus, nextMatch, lastMatch, teamNumber, turnaroundTime, turnaroundAllianceColor, teamKey } = eventSummary;
 
   return (
-    <div className="bg-swat-black text-swat-white p-6 rounded-lg border-4 border-swat-green mb-8 w-full">
-      {/* Event Header */}
-      <div className="flex justify-between items-start mb-6">
-        <div>
-          <h2 className="text-2xl font-impact text-swat-green mb-1">
-            LIVE: {event.name}
+    <div className="bg-swat-black text-swat-white p-4 min-h-screen w-full">
+      {/* Event Header - Full Width at Top */}
+      <div className="bg-gray-800 rounded-lg p-3 mb-4">
+        <div className="flex justify-between items-center mb-2">
+          <h2 className="text-2xl font-impact text-swat-green">
+            {event.name}
           </h2>
-          <p className="text-gray-300">
-            {event.city}, {event.state_prov} • Team {teamNumber}
-          </p>
-        </div>
-        <div className="text-right">
-          <div className="bg-red-600 text-white px-3 py-1 rounded-full text-sm font-bold animate-pulse">
-            LIVE
+          <div className="flex flex-col gap-1 items-end">
+            <div className="bg-red-600 text-white px-3 py-1 rounded-full text-sm font-bold animate-pulse">
+              LIVE
+            </div>
+            {testDataActive && (
+              <div className="bg-yellow-500 text-black px-2 py-0.5 rounded-full text-xs font-bold">
+                TEST MODE
+              </div>
+            )}
           </div>
+        </div>
+        <div className="text-base text-gray-300">
+          {event.city}, {event.state_prov} • Team {teamNumber}
         </div>
       </div>
 
-      {/* Stream Embed */}
+      {/* Stream Section - Full Width */}
       {event.webcasts && event.webcasts.length > 0 && (
-        <div className="mb-6" ref={streamContainerRef}>
-          <div className="aspect-video bg-gray-800 rounded-lg overflow-hidden">
+        <div className="mb-4" ref={streamContainerRef}>
+          <div className="aspect-video bg-gray-800 rounded-lg overflow-hidden max-h-[70vh]">
             {!streamVisible ? (
               <div className="flex items-center justify-center h-full text-gray-400">
                 <div className="text-center">
@@ -313,7 +545,7 @@ const LiveEventDisplay: React.FC = () => {
               </div>
             ) : event.webcasts[0].type === 'twitch' ? (
               <iframe
-                key={`twitch-${streamVisible}`} // Force re-render when visible
+                key={`twitch-${streamVisible}`}
                 src={`https://player.twitch.tv/?channel=${event.webcasts[0].channel}&parent=${window.location.hostname}&parent=localhost&autoplay=true&muted=false`}
                 width="100%"
                 height="100%"
@@ -323,7 +555,7 @@ const LiveEventDisplay: React.FC = () => {
               />
             ) : event.webcasts[0].type === 'youtube' ? (
               <iframe
-                key={`youtube-${streamVisible}`} // Force re-render when visible
+                key={`youtube-${streamVisible}`}
                 src={`https://www.youtube.com/embed/${event.webcasts[0].channel}?autoplay=1&mute=0&controls=1&rel=0&modestbranding=1`}
                 width="100%"
                 height="100%"
@@ -340,48 +572,54 @@ const LiveEventDisplay: React.FC = () => {
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {/* Info Cards - Below Stream in Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+
         {/* Current Status */}
         <div className="bg-gray-800 rounded-lg p-4">
-          <h3 className="text-lg font-bold text-swat-green mb-3">Current Status</h3>
-          {teamStatus.qual_ranking && (
-            <div className="mb-2">
-              <span className="text-gray-300">Rank: </span>
-              <span className={`font-bold ${getRankingColor(teamStatus.qual_ranking)}`}>
-                #{teamStatus.qual_ranking}
-              </span>
-            </div>
-          )}
-          {teamStatus.qual_record && (
-            <div className="mb-2">
-              <span className="text-gray-300">Record: </span>
-              <span className="text-green-400">{teamStatus.qual_record.wins}</span>
-              <span className="text-gray-400">-</span>
-              <span className="text-red-400">{teamStatus.qual_record.losses}</span>
-              {teamStatus.qual_record.ties > 0 && (
-                <>
+          <h3 className="text-xl font-bold text-swat-green mb-3">Current Status</h3>
+          <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-base">
+            {teamStatus.qual_ranking && (
+              <>
+                <span className="text-gray-300">Rank:</span>
+                <span className={`font-bold ${getRankingColor(teamStatus.qual_ranking)}`}>
+                  #{teamStatus.qual_ranking}
+                </span>
+              </>
+            )}
+            {teamStatus.qual_record && (
+              <>
+                <span className="text-gray-300">Record:</span>
+                <span className="font-bold">
+                  <span className="text-green-400">{teamStatus.qual_record.wins}</span>
                   <span className="text-gray-400">-</span>
-                  <span className="text-yellow-400">{teamStatus.qual_record.ties}</span>
-                </>
-              )}
-            </div>
-          )}
-          {teamStatus.opr && (
-            <div className="mb-2">
-              <span className="text-gray-300">OPR: </span>
-              <span className="text-blue-400 font-mono">{teamStatus.opr}</span>
-            </div>
-          )}
-          {teamStatus.qual_avg && (
-            <div className="mb-2">
-              <span className="text-gray-300">Avg RP: </span>
-              <span className="text-purple-400 font-mono">{teamStatus.qual_avg.toFixed(1)}</span>
-            </div>
-          )}
+                  <span className="text-red-400">{teamStatus.qual_record.losses}</span>
+                  {teamStatus.qual_record.ties > 0 && (
+                    <>
+                      <span className="text-gray-400">-</span>
+                      <span className="text-yellow-400">{teamStatus.qual_record.ties}</span>
+                    </>
+                  )}
+                </span>
+              </>
+            )}
+            {teamStatus.opr && (
+              <>
+                <span className="text-gray-300">OPR:</span>
+                <span className="text-blue-400 font-mono font-bold">{teamStatus.opr}</span>
+              </>
+            )}
+            {teamStatus.qual_avg && (
+              <>
+                <span className="text-gray-300">Avg RP:</span>
+                <span className="text-purple-400 font-mono font-bold">{teamStatus.qual_avg.toFixed(1)}</span>
+              </>
+            )}
+          </div>
           {teamStatus.overall_status_str && (
-            <div className="mb-2">
+            <div className="mt-3 pt-3 border-t border-gray-600 text-base">
               <span className="text-gray-300">Status: </span>
-              <span 
+              <span
                 className="text-swat-green font-semibold"
                 dangerouslySetInnerHTML={{ __html: teamStatus.overall_status_str }}
               />
@@ -391,88 +629,150 @@ const LiveEventDisplay: React.FC = () => {
 
         {/* Next Match */}
         {nextMatch && (
-          <div className="bg-gray-800 rounded-lg p-4">
-            <h3 className="text-lg font-bold text-swat-green mb-3">Next Match</h3>
-            <div className="mb-2">
-              <span className="text-xl font-bold">
-                {(() => {
-                  const actualMatchNum = getActualMatchNumber(nextMatch.match_key, nextMatch.comp_level, nextMatch.match_number);
-                  return getCompLevelDisplay(nextMatch.comp_level, actualMatchNum) + getMatchDisplayNumber(nextMatch.comp_level, actualMatchNum);
-                })()}
-              </span>
-            </div>
-            <div className="mb-2">
-              <span className="text-gray-300">Time: </span>
-              <span className="font-mono">{formatTime(nextMatch.predicted_time || nextMatch.time)}</span>
-              {nextMatch.predicted_time && (
-                <span className="text-sm text-swat-green ml-2">
-                  ({formatTimeUntil(nextMatch.predicted_time)})
+            <div className="bg-gray-800 rounded-lg p-4">
+              <div className="flex justify-between items-center mb-3">
+                <h3 className="text-xl font-bold text-swat-green">Next Match</h3>
+                <span className="text-2xl font-bold inline-flex items-center gap-2">
+                  {(() => {
+                    const actualMatchNum = getActualMatchNumber(nextMatch.match_key, nextMatch.comp_level, nextMatch.match_number);
+                    return getCompLevelDisplay(nextMatch.comp_level, actualMatchNum) + getMatchDisplayNumber(nextMatch.comp_level, actualMatchNum);
+                  })()}
+                  {(() => {
+                    const isOnRed = nextMatch.red_alliance.team_keys?.includes(teamKey);
+                    const isOnBlue = nextMatch.blue_alliance.team_keys?.includes(teamKey);
+                    if (isOnRed) {
+                      return <div className="w-4 h-4 bg-red-500 rounded-full"></div>;
+                    } else if (isOnBlue) {
+                      return <div className="w-4 h-4 bg-blue-500 rounded-full"></div>;
+                    }
+                    return null;
+                  })()}
                 </span>
-              )}
-            </div>
-            <div className="space-y-1 text-sm">
-              <div className="flex items-center">
-                <div className="w-4 h-4 bg-red-500 rounded mr-2"></div>
-                <span>{nextMatch.red_alliance.team_keys?.map(key => key.replace('frc', '')).join(', ')}</span>
               </div>
-              <div className="flex items-center">
-                <div className="w-4 h-4 bg-blue-500 rounded mr-2"></div>
-                <span>{nextMatch.blue_alliance.team_keys?.map(key => key.replace('frc', '')).join(', ')}</span>
-              </div>
-            </div>
-            {turnaroundTime && (
-              <div className="mt-3 pt-3 border-t border-gray-600">
-                <span className="text-gray-300">Turnaround: </span>
-                <span className="font-mono">{formatTurnaroundTime(turnaroundTime)}</span>
-                {turnaroundAllianceColor && (
-                  <div className={`inline-block w-3 h-3 rounded-full ml-2 ${
-                    turnaroundAllianceColor === 'red' ? 'bg-red-500' : 'bg-blue-500'
-                  }`}></div>
+              <div className="mb-2">
+                <span className="text-base text-gray-300">Time: </span>
+                <span className="text-lg font-mono font-bold">{formatTime(nextMatch.predicted_time || nextMatch.time)}</span>
+                {nextMatch.predicted_time && (
+                  <span className="text-base text-swat-green ml-2 font-bold">
+                    ({formatTimeUntil(nextMatch.predicted_time)})
+                  </span>
                 )}
               </div>
-            )}
-          </div>
-        )}
+              <div className="space-y-2 text-base">
+                <div className="flex items-center gap-2">
+                  <div className="w-5 h-5 bg-red-500 rounded flex-shrink-0"></div>
+                  <div className="flex gap-1.5 flex-wrap">
+                    {nextMatch.red_alliance.team_keys?.map(key => (
+                      <div key={key} className="flex items-center gap-1">
+                        <img
+                          src={getTeamAvatarUrl(event.year, key)}
+                          alt={key.replace('frc', '')}
+                          className="w-6 h-6 rounded"
+                          loading="lazy"
+                          onError={(e) => handleAvatarError(e, event.year, key)}
+                        />
+                        <span className="font-semibold">{key.replace('frc', '')}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-5 h-5 bg-blue-500 rounded flex-shrink-0"></div>
+                  <div className="flex gap-1.5 flex-wrap">
+                    {nextMatch.blue_alliance.team_keys?.map(key => (
+                      <div key={key} className="flex items-center gap-1">
+                        <img
+                          src={getTeamAvatarUrl(event.year, key)}
+                          alt={key.replace('frc', '')}
+                          className="w-6 h-6 rounded"
+                          loading="lazy"
+                          onError={(e) => handleAvatarError(e, event.year, key)}
+                        />
+                        <span className="font-semibold">{key.replace('frc', '')}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              {turnaroundTime && (
+                <div className="mt-3 pt-3 border-t border-gray-600">
+                  <span className="text-gray-300">Turnaround: </span>
+                  <span className="font-mono font-bold">{formatTurnaroundTime(turnaroundTime)}</span>
+                  {turnaroundAllianceColor && (
+                    <div className={`inline-block w-3 h-3 rounded-full ml-2 ${
+                      turnaroundAllianceColor === 'red' ? 'bg-red-500' : 'bg-blue-500'
+                    }`}></div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
 
-        {/* Last Match */}
-        {lastMatch && (
-          <div className="bg-gray-800 rounded-lg p-4">
-            <h3 className="text-lg font-bold text-swat-green mb-3">Last Match</h3>
-            <div className="mb-2">
-              <span className="text-xl font-bold">
-                {(() => {
-                  const actualMatchNum = getActualMatchNumber(lastMatch.match_key, lastMatch.comp_level, lastMatch.match_number);
-                  return getCompLevelDisplay(lastMatch.comp_level, actualMatchNum) + getMatchDisplayNumber(lastMatch.comp_level, actualMatchNum);
-                })()}
-              </span>
-            </div>
-            <div className="space-y-1 text-sm mb-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <div className="w-4 h-4 bg-red-500 rounded mr-2"></div>
-                  <span>{lastMatch.red_alliance.team_keys?.map(key => key.replace('frc', '')).join(', ')}</span>
-                </div>
-                <span className={`font-bold ${lastMatch.winning_alliance === 'red' ? 'text-red-400' : 'text-gray-400'}`}>
-                  {lastMatch.red_alliance.score}
+          {/* Last Match */}
+          {lastMatch && (
+            <div className="bg-gray-800 rounded-lg p-4">
+              <div className="flex justify-between items-center mb-3">
+                <h3 className="text-xl font-bold text-swat-green">Last Match</h3>
+                <span className="text-2xl font-bold">
+                  {(() => {
+                    const actualMatchNum = getActualMatchNumber(lastMatch.match_key, lastMatch.comp_level, lastMatch.match_number);
+                    return getCompLevelDisplay(lastMatch.comp_level, actualMatchNum) + getMatchDisplayNumber(lastMatch.comp_level, actualMatchNum);
+                  })()}
                 </span>
               </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <div className="w-4 h-4 bg-blue-500 rounded mr-2"></div>
-                  <span>{lastMatch.blue_alliance.team_keys?.map(key => key.replace('frc', '')).join(', ')}</span>
+              <div className="space-y-2 text-base mb-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-5 h-5 bg-red-500 rounded flex-shrink-0"></div>
+                    <div className="flex gap-1.5 flex-wrap">
+                      {lastMatch.red_alliance.team_keys?.map(key => (
+                        <div key={key} className="flex items-center gap-1">
+                          <img
+                            src={getTeamAvatarUrl(event.year, key)}
+                            alt={key.replace('frc', '')}
+                            className="w-6 h-6 rounded"
+                            loading="lazy"
+                            onError={(e) => handleAvatarError(e, event.year, key)}
+                          />
+                          <span className="font-semibold">{key.replace('frc', '')}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <span className={`text-2xl font-bold ${lastMatch.winning_alliance === 'red' ? 'text-red-400' : 'text-gray-400'}`}>
+                    {lastMatch.red_alliance.score}
+                  </span>
                 </div>
-                <span className={`font-bold ${lastMatch.winning_alliance === 'blue' ? 'text-blue-400' : 'text-gray-400'}`}>
-                  {lastMatch.blue_alliance.score}
-                </span>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-5 h-5 bg-blue-500 rounded flex-shrink-0"></div>
+                    <div className="flex gap-1.5 flex-wrap">
+                      {lastMatch.blue_alliance.team_keys?.map(key => (
+                        <div key={key} className="flex items-center gap-1">
+                          <img
+                            src={getTeamAvatarUrl(event.year, key)}
+                            alt={key.replace('frc', '')}
+                            className="w-6 h-6 rounded"
+                            loading="lazy"
+                            onError={(e) => handleAvatarError(e, event.year, key)}
+                          />
+                          <span className="font-semibold">{key.replace('frc', '')}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <span className={`text-2xl font-bold ${lastMatch.winning_alliance === 'blue' ? 'text-blue-400' : 'text-gray-400'}`}>
+                    {lastMatch.blue_alliance.score}
+                  </span>
+                </div>
               </div>
-            </div>
             {lastMatch.score_breakdown && !isEliminationMatch(lastMatch.comp_level) && (
               <div className="text-xs text-gray-400">
                 {(() => {
                   const teamRP = getTeamRankingPoints(
                     lastMatch.score_breakdown,
                     event.year,
-                    eventSummary.teamKey,
+                    teamKey,
                     lastMatch.red_alliance.team_keys || [],
                     lastMatch.blue_alliance.team_keys || []
                   );
@@ -522,10 +822,10 @@ const LiveEventDisplay: React.FC = () => {
                 <div>
                   <span>Result: </span>
                   <span className={`font-bold ${
-                    lastMatch.winning_alliance === (lastMatch.red_alliance.team_keys?.includes(eventSummary.teamKey) ? 'red' : 'blue')
+                    lastMatch.winning_alliance === (lastMatch.red_alliance.team_keys?.includes(teamKey) ? 'red' : 'blue')
                       ? 'text-green-400' : 'text-red-400'
                   }`}>
-                    {lastMatch.winning_alliance === (lastMatch.red_alliance.team_keys?.includes(eventSummary.teamKey) ? 'red' : 'blue')
+                    {lastMatch.winning_alliance === (lastMatch.red_alliance.team_keys?.includes(teamKey) ? 'red' : 'blue')
                       ? 'Win' : 'Loss'}
                   </span>
                 </div>
@@ -536,7 +836,7 @@ const LiveEventDisplay: React.FC = () => {
       </div>
 
       {/* Match Schedule Button */}
-      <div className="mt-6 text-center">
+      <div className="mt-4 text-center">
         <button
           onClick={() => setShowSchedule(!showSchedule)}
           className="bg-swat-green hover:bg-swat-green-dark text-swat-white px-6 py-2 rounded-lg font-bold transition-colors"
@@ -551,7 +851,7 @@ const LiveEventDisplay: React.FC = () => {
           <h3 className="text-lg font-bold text-swat-green mb-3">Match Schedule</h3>
           <div className="space-y-2">
             {matchSchedule.map((match) => {
-              const allianceColor = getAllianceColor(eventSummary.teamKey, match);
+              const allianceColor = getAllianceColor(teamKey, match);
               const winner = allianceColor === match.winning_alliance;
               return (
                 <div
@@ -585,8 +885,8 @@ const LiveEventDisplay: React.FC = () => {
                         {(() => {
                           const teamRP = getTeamRankingPoints(
                             match.score_breakdown,
-                            eventSummary.event.year,
-                            eventSummary.teamKey,
+                            event.year,
+                            teamKey,
                             match.red_alliance.team_keys || [],
                             match.blue_alliance.team_keys || []
                           );

@@ -255,9 +255,10 @@ const EditContactInfoModal: React.FC<EditContactInfoModalProps> = ({
         <div className="mt-6 p-4 bg-gray-50 rounded-md">
           <h3 className="text-sm font-medium text-gray-700 mb-2">Privacy Notice:</h3>
           <p className="text-xs text-gray-600">
-            Your personal information is kept confidential and is only used for team communication, 
+            Your personally identifiable information is kept confidential and is only used for team communication, 
             safety purposes, and event coordination. Medical information is only shared with team 
-            mentors and adult supervisors as needed for your safety.
+            mentors and adult supervisors as needed for your safety. Anonymized verions of this data may be shared
+            with various organizations as part of our efforts to secure grants/funding.
           </p>
         </div>
       </div>

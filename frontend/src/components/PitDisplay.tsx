@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../contexts/AuthContext';
 import { extractRankingPoints, getTeamRankingPoints } from '../utils/scoringUtils';
+import { getTeamAvatarUrl, handleAvatarError } from '../utils/avatarHelper';
 import { randomInt } from 'crypto';
 
 interface EventSummary {
@@ -86,9 +87,6 @@ interface EventMatch {
   score_breakdown?: any;
 }
 
-// Avatar cache to prevent repeated requests
-const avatarCache = new Map<string, string>();
-
 const PitDisplay: React.FC = () => {
   const [eventSummary, setEventSummary] = useState<EventSummary | null>(null);
   const [matchSchedule, setMatchSchedule] = useState<EventMatch[]>([]);
@@ -101,20 +99,6 @@ const PitDisplay: React.FC = () => {
   const [keySequence, setKeySequence] = useState<string[]>([]);
   const [testDataActive, setTestDataActive] = useState(false);
 
-  // Preload avatar images
-  const preloadAvatar = (year: number, teamKey: string) => {
-    const cacheKey = `${year}-${teamKey}`;
-    if (avatarCache.has(cacheKey)) {
-      return avatarCache.get(cacheKey);
-    }
-
-    const url = `https://www.thebluealliance.com/avatar/${year}/${teamKey}.png`;
-    const img = new Image();
-    img.src = url;
-    avatarCache.set(cacheKey, url);
-    return url;
-  };
-
   useEffect(() => {
     if (!testDataActive) {
       fetchEventData();
@@ -124,25 +108,6 @@ const PitDisplay: React.FC = () => {
       return () => clearInterval(interval);
     }
   }, [testDataActive]);
-
-  // Preload avatars when event data changes
-  useEffect(() => {
-    if (eventSummary && matchSchedule.length > 0) {
-      const year = eventSummary.event.year;
-      const teamsToPreload = new Set<string>();
-
-      // Collect all team keys from matches
-      matchSchedule.forEach(match => {
-        match.red_alliance.team_keys?.forEach(key => teamsToPreload.add(key));
-        match.blue_alliance.team_keys?.forEach(key => teamsToPreload.add(key));
-      });
-
-      // Preload avatars
-      teamsToPreload.forEach(teamKey => {
-        preloadAvatar(year, teamKey);
-      });
-    }
-  }, [eventSummary, matchSchedule]);
 
   // Easter egg: Ctrl + 1806 key sequence
   useEffect(() => {
@@ -681,13 +646,11 @@ const PitDisplay: React.FC = () => {
                     {nextMatch.red_alliance.team_keys?.map(key => (
                       <div key={key} className="flex items-center gap-1">
                         <img
-                          src={`https://www.thebluealliance.com/avatar/${event.year}/${key}.png`}
+                          src={getTeamAvatarUrl(event.year, key)}
                           alt={key.replace('frc', '')}
                           className="w-6 h-6 rounded"
                           loading="lazy"
-                          onError={(e) => {
-                            e.currentTarget.style.display = 'none';
-                          }}
+                          onError={(e) => handleAvatarError(e, event.year, key)}
                         />
                         <span className="font-semibold">{key.replace('frc', '')}</span>
                       </div>
@@ -700,13 +663,11 @@ const PitDisplay: React.FC = () => {
                     {nextMatch.blue_alliance.team_keys?.map(key => (
                       <div key={key} className="flex items-center gap-1">
                         <img
-                          src={`https://www.thebluealliance.com/avatar/${event.year}/${key}.png`}
+                          src={getTeamAvatarUrl(event.year, key)}
                           alt={key.replace('frc', '')}
                           className="w-6 h-6 rounded"
                           loading="lazy"
-                          onError={(e) => {
-                            e.currentTarget.style.display = 'none';
-                          }}
+                          onError={(e) => handleAvatarError(e, event.year, key)}
                         />
                         <span className="font-semibold">{key.replace('frc', '')}</span>
                       </div>
@@ -759,12 +720,11 @@ const PitDisplay: React.FC = () => {
                       {lastMatch.red_alliance.team_keys?.map(key => (
                         <div key={key} className="flex items-center gap-1">
                           <img
-                            src={`https://www.thebluealliance.com/avatar/${event.year}/${key}.png`}
+                            src={getTeamAvatarUrl(event.year, key)}
                             alt={key.replace('frc', '')}
                             className="w-6 h-6 rounded"
-                            onError={(e) => {
-                              e.currentTarget.style.display = 'none';
-                            }}
+                            loading="lazy"
+                            onError={(e) => handleAvatarError(e, event.year, key)}
                           />
                           <span className="font-semibold">{key.replace('frc', '')}</span>
                         </div>
@@ -782,12 +742,11 @@ const PitDisplay: React.FC = () => {
                       {lastMatch.blue_alliance.team_keys?.map(key => (
                         <div key={key} className="flex items-center gap-1">
                           <img
-                            src={`https://www.thebluealliance.com/avatar/${event.year}/${key}.png`}
+                            src={getTeamAvatarUrl(event.year, key)}
                             alt={key.replace('frc', '')}
                             className="w-6 h-6 rounded"
-                            onError={(e) => {
-                              e.currentTarget.style.display = 'none';
-                            }}
+                            loading="lazy"
+                            onError={(e) => handleAvatarError(e, event.year, key)}
                           />
                           <span className="font-semibold">{key.replace('frc', '')}</span>
                         </div>
@@ -928,13 +887,11 @@ const PitDisplay: React.FC = () => {
                         {match.red_alliance.team_keys?.map(key => (
                           <div key={key} className="flex items-center gap-0.5">
                             <img
-                              src={`https://www.thebluealliance.com/avatar/${eventSummary.event.year}/${key}.png`}
+                              src={getTeamAvatarUrl(eventSummary.event.year, key)}
                               alt={key.replace('frc', '')}
                               className="w-4 h-4 rounded"
                               loading="lazy"
-                              onError={(e) => {
-                                e.currentTarget.style.display = 'none';
-                              }}
+                              onError={(e) => handleAvatarError(e, eventSummary.event.year, key)}
                             />
                             <span className="text-gray-300 text-sm font-medium">{key.replace('frc', '')}</span>
                           </div>
@@ -956,13 +913,11 @@ const PitDisplay: React.FC = () => {
                         {match.blue_alliance.team_keys?.map(key => (
                           <div key={key} className="flex items-center gap-0.5">
                             <img
-                              src={`https://www.thebluealliance.com/avatar/${eventSummary.event.year}/${key}.png`}
+                              src={getTeamAvatarUrl(eventSummary.event.year, key)}
                               alt={key.replace('frc', '')}
                               className="w-4 h-4 rounded"
                               loading="lazy"
-                              onError={(e) => {
-                                e.currentTarget.style.display = 'none';
-                              }}
+                              onError={(e) => handleAvatarError(e, eventSummary.event.year, key)}
                             />
                             <span className="text-gray-300 text-sm font-medium">{key.replace('frc', '')}</span>
                           </div>

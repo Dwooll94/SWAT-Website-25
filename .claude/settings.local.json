@@ -9,7 +9,13 @@
       "Bash(perl:*)",
       "Bash(npm run build:*)",
       "Bash(npx tsc:*)",
-      "Bash(psql:*)"
+      "Bash(psql:*)",
+      "Bash(echo:*)",
+      "Bash(if [ -f .env ])",
+      "Bash(then grep -E \"FIRST_API\" .env)",
+      "Bash(else echo \".env file does not exist\")",
+      "Bash(fi)",
+      "Bash(cat:*)"
     ],
     "deny": [],
     "ask": []

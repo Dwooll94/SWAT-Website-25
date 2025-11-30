@@ -21,6 +21,7 @@ import pagesRoutes from './routes/pages';
 import eventsRoutes from './routes/events';
 import tbaStatsRoutes from './routes/tbaStats';
 import outreachRoutes from './routes/outreach';
+import avatarRoutes from './routes/avatars';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 import { testConnection, gracefulShutdown } from './utils/database';
 import { AdminInitService } from './services/adminInitService';
@@ -41,17 +42,39 @@ const limiter = rateLimit({
 
 app.use(helmet());
 
-var whitelist = [process.env.FRONTEND_URL || 'http://localhost:3000', process.env.BACKEND_URL]
+// Build whitelist from environment and common development URLs
+var whitelist = [
+  process.env.FRONTEND_URL || 'http://localhost:3000',
+  process.env.BACKEND_URL,
+  'http://localhost:5173',  // Vite dev server (localhost)
+  'http://localhost:3000',  // React dev server (localhost)
+]
+
+// Add network IP variants if FRONTEND_URL is set with an IP
+if (process.env.FRONTEND_URL && process.env.FRONTEND_URL.includes('192.168')) {
+  const ipMatch = process.env.FRONTEND_URL.match(/http:\/\/([0-9.]+):/);
+  if (ipMatch) {
+    const ip = ipMatch[1];
+    whitelist.push(`http://${ip}:5173`);  // Vite on network IP
+    whitelist.push(`http://${ip}:3000`);  // React on network IP
+  }
+}
+
 app.use(cors({
   origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps, Postman, or curl)
+    if (!origin) return callback(null, true);
+
     if (whitelist.indexOf(origin) !== -1) {
       callback(null, true)
     } else {
+      console.error(`CORS blocked request from origin: ${origin}`);
+      console.error(`Allowed origins: ${whitelist.join(', ')}`);
       callback(new Error('Not allowed by CORS:' + origin))
     }
   },
   credentials: true,
-  
+
 }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
@@ -78,6 +101,7 @@ app.use('/api/pages', pagesRoutes);
 app.use('/api/events', eventsRoutes);
 app.use('/api/tba-stats', tbaStatsRoutes);
 app.use('/api/outreach', outreachRoutes);
+app.use('/api/avatars', avatarRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

@@ -1,0 +1,7 @@
+# Team avatars downloaded by scripts/download-avatars.js
+# Run: node scripts/download-avatars.js --test-mode
+
+*.png
+*.jpg
+*.jpeg
+!.gitkeep
