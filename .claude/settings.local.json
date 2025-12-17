@@ -15,7 +15,8 @@
       "Bash(then grep -E \"FIRST_API\" .env)",
       "Bash(else echo \".env file does not exist\")",
       "Bash(fi)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(npm uninstall:*)"
     ],
     "deny": [],
     "ask": []

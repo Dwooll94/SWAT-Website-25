@@ -2,6 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { api } from '../contexts/AuthContext';
 import SEO from '../components/SEO';
 import { redirectBotIfNeeded } from '../utils/botDetection';
+import { Document, Page, pdfjs } from 'react-pdf';
+import 'react-pdf/dist/Page/AnnotationLayer.css';
+import 'react-pdf/dist/Page/TextLayer.css';
+
+// Configure PDF.js worker - use the version that comes with react-pdf
+pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
 interface Sponsor {
   id: number;
@@ -18,6 +24,7 @@ const Sponsors: React.FC = () => {
   const [sponsors, setSponsors] = useState<Sponsor[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [numPages, setNumPages] = useState<number | null>(null);
 
   useEffect(() => {
     // Redirect bots to pre-rendered version
@@ -190,13 +197,22 @@ const Sponsors: React.FC = () => {
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">
                   Info for Potential Sponsors:
                 </h3>
-                <iframe
-                  src="https://drive.google.com/viewerng/viewer?embedded=true&url=https://team1806.com/pdfs/SponsorInfo.pdf"
-                  width="100%"
-                  height="400"
-                  className="border rounded-md max-w-2xl mx-auto"
-                  title="Sponsor Information PDF"
-                />
+                <div className="border rounded-md max-w-4xl mx-auto overflow-auto" style={{ maxHeight: '800px' }}>
+                  <Document
+                    file="/Team Info-- Generic.pdf"
+                    onLoadSuccess={({ numPages }) => setNumPages(numPages)}
+                    className="flex flex-col items-center"
+                  >
+                    {numPages && Array.from(new Array(numPages), (el, index) => (
+                      <Page
+                        key={`page_${index + 1}`}
+                        pageNumber={index + 1}
+                        width={Math.min(window.innerWidth * 0.9, 900)}
+                        className="mb-4"
+                      />
+                    ))}
+                  </Document>
+                </div>
               </div>
             </div>
           </div>
