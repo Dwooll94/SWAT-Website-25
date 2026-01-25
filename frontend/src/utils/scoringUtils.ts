@@ -32,6 +32,21 @@ export function extractRankingPoints(scoreBreakdown: any, year: number): Ranking
   };
 
   switch (year) {
+    case 2026:
+      result.redRP = (red.rp || 0);
+      result.blueRP = (blue.rp || 0);
+      
+      result.redRPBreakdown = {
+        'Energized RP': red.energizedAchieved || false,
+        'Supercharged RP': red.superchargeAchieved || false,
+        'Traversal RP' : red.traversalAchieved || false
+      };
+      result.blueRPBreakdown = {
+        'Energized RP': blue.energizedAchieved || false,
+        'Supercharged RP' : blue.superchargeAchieved || false,
+        'Traversal RP' : blue.traversalAchieved || false
+      };
+      break;
     case 2025: // REEFSCAPE
       result.redRP = (red.rp || 0);
       result.blueRP = (blue.rp || 0);

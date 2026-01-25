@@ -259,7 +259,7 @@ const PitDisplay: React.FC = () => {
       const opponents = shuffledOpponents.slice(0, 3);
 
       testMatches.push({
-        match_key: `2024test_qm${i}`,
+        match_key: `2026test_qm${i}`,
         comp_level: 'qm',
         match_number: currentMatch,
         time: nextMatchTime,
@@ -280,15 +280,15 @@ const PitDisplay: React.FC = () => {
         score_breakdown: hasScore ? {
           red: {
             rp: is1806OnRed ? (i % 3 === 0 ? 3 : 2) : (i % 4 === 0 ? 2 : 1),
-            bargeBonusAchieved: is1806OnRed ? (i % 2 === 0) : (i % 5 === 0),
-            coralBonusAchieved: is1806OnRed ? true : (i % 3 === 0),
-            autoBonusAchieved: is1806OnRed ? (i % 3 === 0) : (i % 4 === 0)
+            eneergizedAchieved: is1806OnRed ? (i % 2 === 0) : (i % 5 === 0),
+            superchargedAchieved: is1806OnRed ? true : (i % 3 === 0),
+            traversalAchieved: is1806OnRed ? (i % 3 === 0) : (i % 4 === 0)
           },
           blue: {
             rp: is1806OnRed ? (i % 4 === 0 ? 2 : 1) : (i % 3 === 0 ? 3 : 2),
-            bargeBonusAchieved: is1806OnRed ? (i % 5 === 0) : (i % 2 === 0),
-            coralBonusAchieved: is1806OnRed ? (i % 3 === 0) : true,
-            autoBonusAchieved: is1806OnRed ? (i % 4 === 0) : (i % 3 === 0)
+            energizedAchieved: is1806OnRed ? (i % 5 === 0) : (i % 2 === 0),
+            superchargedAchieved: is1806OnRed ? (i % 3 === 0) : true,
+            traversalAchieved: is1806OnRed ? (i % 4 === 0) : (i % 3 === 0)
           }
         } : undefined
       });
@@ -298,14 +298,14 @@ const PitDisplay: React.FC = () => {
     // Generate test event data
     setEventSummary({
       event: {
-        event_key: '2025test',
+        event_key: '2026test',
         name: 'Test Event - Electric Zoo',
         event_code: 'test',
         city: 'Zoo City',
         state_prov: 'MO',
         start_date: new Date().toISOString().split('T')[0],
         end_date: new Date().toISOString().split('T')[0],
-        year: 2025,
+        year: 2026,
         webcasts: [
           {
             type: 'youtube',
@@ -344,15 +344,15 @@ const PitDisplay: React.FC = () => {
         score_breakdown: {
           red: {
             rp: 3,
-            bargeBonusAchieved: true,
-            coralBonusAchieved: true,
-            autoBonusAchieved: false
+            energizedAchieved: true,
+            superchargedAchieved: true,
+            traversalAchieved: false
           },
           blue: {
             rp: 1,
-            bargeBonusAchieved: false,
-            coralBonusAchieved: false,
-            autoBonusAchieved: true
+            energizedAchieved: false,
+            superchargedAchieved: false,
+            traversalAchieved: true
           }
         }
       },
