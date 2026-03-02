@@ -141,6 +141,7 @@ export const login = async (req: Request, res: Response) => {
     let is_core_leadership = false;
     if (user.role === 'student') {
       is_core_leadership = await StudentAttributeModel.isCoreLeadership(user.id);
+      console.log(`[LOGIN DEBUG] User ${user.email} (${user.id}) is_core_leadership: ${is_core_leadership}`);
     }
 
     res.json({
@@ -154,7 +155,7 @@ export const login = async (req: Request, res: Response) => {
         first_name: user.first_name,
         last_name: user.last_name,
         maintenance_access: user.maintenance_access,
-        is_core_leadership
+        is_core_leadership: is_core_leadership
       }
     });
   } catch (error) {
