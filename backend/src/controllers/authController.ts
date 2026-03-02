@@ -137,6 +137,12 @@ export const login = async (req: Request, res: Response) => {
     await UserModel.updateLastLogin(user.id);
     const token = generateToken(user);
 
+    // Get core leadership status for students
+    let is_core_leadership = false;
+    if (user.role === 'student') {
+      is_core_leadership = await StudentAttributeModel.isCoreLeadership(user.id);
+    }
+
     res.json({
       message: 'Login successful',
       token,
@@ -147,7 +153,8 @@ export const login = async (req: Request, res: Response) => {
         registration_status: user.registration_status,
         first_name: user.first_name,
         last_name: user.last_name,
-        maintenance_access: user.maintenance_access
+        maintenance_access: user.maintenance_access,
+        is_core_leadership
       }
     });
   } catch (error) {
@@ -166,6 +173,12 @@ export const getProfile = async (req: AuthenticatedRequest, res: Response) => {
     const subteamPreferences = await SubteamModel.getUserPreferences(user.id);
     const guardians = await UserModel.getGuardians(user.id);
 
+    // Get core leadership status for students
+    let is_core_leadership = false;
+    if (user.role === 'student') {
+      is_core_leadership = await StudentAttributeModel.isCoreLeadership(user.id);
+    }
+
     res.json({
       id: user.id,
       email: user.email,
@@ -181,6 +194,7 @@ export const getProfile = async (req: AuthenticatedRequest, res: Response) => {
       medical_conditions: user.medical_conditions,
       heard_about_team: user.heard_about_team,
       maintenance_access: user.maintenance_access,
+      is_core_leadership,
       subteamPreferences,
       guardians
     });
