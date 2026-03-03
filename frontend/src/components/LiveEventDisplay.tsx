@@ -334,6 +334,10 @@ const LiveEventDisplay: React.FC = () => {
           }
         ]
       },
+      currentWebcast: {
+        type: 'youtube',
+        channel: 'uDPbvlQq3BQ' // 10 hours of electric zoo
+      },
       teamStatus: {
         qual_ranking: 1,
         qual_avg: 5.1806,
