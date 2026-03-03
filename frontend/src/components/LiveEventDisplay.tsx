@@ -3,6 +3,13 @@ import { api } from '../contexts/AuthContext';
 import { extractRankingPoints, getTeamRankingPoints } from '../utils/scoringUtils';
 import { getTeamAvatarUrl, handleAvatarError } from '../utils/avatarHelper';
 
+interface Webcast {
+  type: string;
+  channel: string;
+  date?: string;
+  file?: string;
+}
+
 interface EventSummary {
   event: {
     event_key: string;
@@ -13,11 +20,9 @@ interface EventSummary {
     start_date: string;
     end_date: string;
     year: number;
-    webcasts: Array<{
-      type: string;
-      channel: string;
-    }>;
+    webcasts: Webcast[];
   };
+  currentWebcast?: Webcast | null;
   teamStatus: {
     qual_ranking?: number;
     qual_avg?: number;
@@ -533,7 +538,7 @@ const LiveEventDisplay: React.FC = () => {
       </div>
 
       {/* Stream Section - Full Width */}
-      {event.webcasts && event.webcasts.length > 0 && (
+      {eventSummary.currentWebcast && (
         <div className="mb-4" ref={streamContainerRef}>
           <div className="aspect-video bg-gray-800 rounded-lg overflow-hidden max-h-[70vh]">
             {!streamVisible ? (
@@ -543,20 +548,20 @@ const LiveEventDisplay: React.FC = () => {
                   <div>Loading stream...</div>
                 </div>
               </div>
-            ) : event.webcasts[0].type === 'twitch' ? (
+            ) : eventSummary.currentWebcast.type === 'twitch' ? (
               <iframe
                 key={`twitch-${streamVisible}`}
-                src={`https://player.twitch.tv/?channel=${event.webcasts[0].channel}&parent=${window.location.hostname}&parent=localhost&autoplay=true&muted=false`}
+                src={`https://player.twitch.tv/?channel=${eventSummary.currentWebcast.channel}&parent=${window.location.hostname}&parent=localhost&autoplay=true&muted=false`}
                 width="100%"
                 height="100%"
                 allowFullScreen
                 allow="autoplay; fullscreen; picture-in-picture"
                 className="border-0"
               />
-            ) : event.webcasts[0].type === 'youtube' ? (
+            ) : eventSummary.currentWebcast.type === 'youtube' ? (
               <iframe
                 key={`youtube-${streamVisible}`}
-                src={`https://www.youtube.com/embed/${event.webcasts[0].channel}?autoplay=1&mute=0&controls=1&rel=0&modestbranding=1`}
+                src={`https://www.youtube.com/embed/${eventSummary.currentWebcast.channel}?autoplay=1&mute=0&controls=1&rel=0&modestbranding=1`}
                 width="100%"
                 height="100%"
                 allowFullScreen

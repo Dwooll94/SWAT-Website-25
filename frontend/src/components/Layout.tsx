@@ -15,6 +15,18 @@ const Layout: React.FC = () => {
   const [firstSignupUrl, setFirstSignupUrl] = useState('');
   const [publishedPages, setPublishedPages] = useState<Array<{id: number, slug: string, title: string}>>([]);
 
+  // Debug log for user object
+  useEffect(() => {
+    if (user) {
+      console.log('[LAYOUT DEBUG] Current user object:', user);
+      console.log('[LAYOUT DEBUG] User role:', user.role);
+      console.log('[LAYOUT DEBUG] is_core_leadership:', user.is_core_leadership);
+      console.log('[LAYOUT DEBUG] Should show Mass Email:',
+        user.role === 'admin' || user.role === 'mentor' || (user.role === 'student' && user.is_core_leadership)
+      );
+    }
+  }, [user]);
+
   const handleLogout = () => {
     logout();
     navigate('/');

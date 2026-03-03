@@ -10,6 +10,13 @@ export interface EventConfig {
   updated_by?: string;
 }
 
+export interface Webcast {
+  type: string;
+  channel: string;
+  date?: string;
+  file?: string;
+}
+
 export interface CurrentEvent {
   id?: number;
   event_key: string;
@@ -30,7 +37,7 @@ export interface CurrentEvent {
   website?: string;
   first_event_id?: string;
   first_event_code?: string;
-  webcasts?: any;
+  webcasts?: Webcast[];
   division_keys?: any;
   parent_event_key?: string;
   is_active: boolean;
@@ -357,6 +364,57 @@ export class EventModel {
     await pool.query(query);
   }
 
+  /**
+   * Selects the appropriate webcast for the current date in the event's timezone
+   * @param event The event with webcasts array
+   * @returns The selected webcast or null if no appropriate webcast found
+   */
+  static selectWebcastForCurrentDate(event: CurrentEvent): Webcast | null {
+    if (!event.webcasts || event.webcasts.length === 0) {
+      return null;
+    }
+
+    // If no timezone specified, use America/Chicago as default for FRC events
+    const timezone = event.timezone || 'America/Chicago';
+
+    try {
+      // Get current date in the event's timezone (format: YYYY-MM-DD)
+      const currentDateInTimezone = new Intl.DateTimeFormat('en-CA', {
+        timeZone: timezone,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      }).format(new Date());
+
+      // Filter webcasts that have a date field matching today
+      const webcastsWithMatchingDate = event.webcasts.filter(
+        (webcast: Webcast) => webcast.date === currentDateInTimezone
+      );
+
+      if (webcastsWithMatchingDate.length > 0) {
+        // Return the first webcast matching today's date
+        return webcastsWithMatchingDate[0];
+      }
+
+      // If no exact date match, try to find webcasts without a date field
+      const webcastsWithoutDate = event.webcasts.filter(
+        (webcast: Webcast) => !webcast.date
+      );
+
+      if (webcastsWithoutDate.length > 0) {
+        // Return the first webcast without a date (assumed to be for all days)
+        return webcastsWithoutDate[0];
+      }
+
+      // Fall back to the first webcast in the array
+      return event.webcasts[0];
+    } catch (error) {
+      console.error('Error selecting webcast for current date:', error);
+      // Fall back to the first webcast in case of error
+      return event.webcasts[0] || null;
+    }
+  }
+
   static async getEventSummary(teamKey: string): Promise<any> {
     const activeEvent = await this.getActiveEvent();
     if (!activeEvent) return null;
@@ -365,8 +423,12 @@ export class EventModel {
     const nextMatch = await this.getNextMatch(activeEvent.event_key, teamKey);
     const lastMatch = await this.getLastMatch(activeEvent.event_key, teamKey);
 
+    // Select the appropriate webcast for the current date
+    const currentWebcast = this.selectWebcastForCurrentDate(activeEvent);
+
     return {
       event: activeEvent,
+      currentWebcast,
       teamStatus,
       nextMatch,
       lastMatch

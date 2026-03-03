@@ -79,7 +79,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       const response = await api.post('/auth/login', { email, password });
       const { token: newToken, user: userData } = response.data;
-      
+
+      console.log('[LOGIN DEBUG] Received user data:', userData);
+      console.log('[LOGIN DEBUG] is_core_leadership:', userData.is_core_leadership);
+
       setToken(newToken);
       setUser(userData);
       localStorage.setItem('token', newToken);
