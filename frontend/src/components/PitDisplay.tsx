@@ -37,7 +37,7 @@ interface EventSummary {
     opr?: number;
     dpr?: number;
     ccwm?: number;
-  };
+  } | null;
   nextMatch?: {
     match_key: string;
     comp_level: string;
@@ -567,51 +567,59 @@ const PitDisplay: React.FC = () => {
           {/* Current Status */}
           <div className="bg-gray-800 rounded-lg p-3">
             <h3 className="text-lg font-bold text-swat-green mb-2">Current Status</h3>
-            <div className="grid grid-cols-4 gap-x-4 gap-y-2 text-base">
-              {teamStatus.qual_ranking && (
-                <>
-                  <span className="text-gray-300">Rank:</span>
-                  <span className={`font-bold ${getRankingColor(teamStatus.qual_ranking)}`}>
-                    #{teamStatus.qual_ranking}
-                  </span>
-                </>
-              )}
-              {teamStatus.qual_record && (
-                <>
-                  <span className="text-gray-300">Record:</span>
-                  <span className="font-bold">
-                    <span className="text-green-400">{teamStatus.qual_record.wins}</span>
-                    <span className="text-gray-400">-</span>
-                    <span className="text-red-400">{teamStatus.qual_record.losses}</span>
-                    {teamStatus.qual_record.ties > 0 && (
-                      <>
+            {teamStatus ? (
+              <>
+                <div className="grid grid-cols-4 gap-x-4 gap-y-2 text-base">
+                  {teamStatus.qual_ranking && (
+                    <>
+                      <span className="text-gray-300">Rank:</span>
+                      <span className={`font-bold ${getRankingColor(teamStatus.qual_ranking)}`}>
+                        #{teamStatus.qual_ranking}
+                      </span>
+                    </>
+                  )}
+                  {teamStatus.qual_record && (
+                    <>
+                      <span className="text-gray-300">Record:</span>
+                      <span className="font-bold">
+                        <span className="text-green-400">{teamStatus.qual_record.wins}</span>
                         <span className="text-gray-400">-</span>
-                        <span className="text-yellow-400">{teamStatus.qual_record.ties}</span>
-                      </>
-                    )}
-                  </span>
-                </>
-              )}
-              {teamStatus.opr && (
-                <>
-                  <span className="text-gray-300">OPR:</span>
-                  <span className="text-blue-400 font-mono font-bold">{teamStatus.opr}</span>
-                </>
-              )}
-              {teamStatus.qual_avg && (
-                <>
-                  <span className="text-gray-300">Avg RP:</span>
-                  <span className="text-purple-400 font-mono font-bold">{teamStatus.qual_avg.toFixed(1)}</span>
-                </>
-              )}
-            </div>
-            {teamStatus.overall_status_str && (
-              <div className="mt-2 pt-2 border-t border-gray-600 text-base">
-                <span className="text-gray-300">Status: </span>
-                <span
-                  className="text-swat-green font-semibold"
-                  dangerouslySetInnerHTML={{ __html: teamStatus.overall_status_str }}
-                />
+                        <span className="text-red-400">{teamStatus.qual_record.losses}</span>
+                        {teamStatus.qual_record.ties > 0 && (
+                          <>
+                            <span className="text-gray-400">-</span>
+                            <span className="text-yellow-400">{teamStatus.qual_record.ties}</span>
+                          </>
+                        )}
+                      </span>
+                    </>
+                  )}
+                  {teamStatus.opr && (
+                    <>
+                      <span className="text-gray-300">OPR:</span>
+                      <span className="text-blue-400 font-mono font-bold">{teamStatus.opr}</span>
+                    </>
+                  )}
+                  {teamStatus.qual_avg && (
+                    <>
+                      <span className="text-gray-300">Avg RP:</span>
+                      <span className="text-purple-400 font-mono font-bold">{teamStatus.qual_avg.toFixed(1)}</span>
+                    </>
+                  )}
+                </div>
+                {teamStatus.overall_status_str && (
+                  <div className="mt-2 pt-2 border-t border-gray-600 text-base">
+                    <span className="text-gray-300">Status: </span>
+                    <span
+                      className="text-swat-green font-semibold"
+                      dangerouslySetInnerHTML={{ __html: teamStatus.overall_status_str }}
+                    />
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="text-gray-400 text-sm">
+                Event has not started yet. Check back soon!
               </div>
             )}
           </div>
